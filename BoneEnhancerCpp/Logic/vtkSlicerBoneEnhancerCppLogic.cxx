@@ -1,17 +1,17 @@
 /*==============================================================================
 
-  Program: 3D Slicer
+Program: 3D Slicer
 
-  Portions (c) Copyright Brigham and Women's Hospital (BWH) All Rights Reserved.
+Portions (c) Copyright Brigham and Women's Hospital (BWH) All Rights Reserved.
 
-  See COPYRIGHT.txt
-  or http://www.slicer.org/copyright/copyright.txt for details.
+See COPYRIGHT.txt
+or http://www.slicer.org/copyright/copyright.txt for details.
 
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 ==============================================================================*/
 
@@ -59,29 +59,29 @@ vtkSlicerBoneEnhancerCppLogic::~vtkSlicerBoneEnhancerCppLogic()
 //----------------------------------------------------------------------------
 void vtkSlicerBoneEnhancerCppLogic::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os, indent);
+	this->Superclass::PrintSelf(os, indent);
 }
 
 //---------------------------------------------------------------------------
 void vtkSlicerBoneEnhancerCppLogic::SetMRMLSceneInternal(vtkMRMLScene * newScene)
 {
-  vtkNew<vtkIntArray> events;
-  events->InsertNextValue(vtkMRMLScene::NodeAddedEvent);
-  events->InsertNextValue(vtkMRMLScene::NodeRemovedEvent);
-  events->InsertNextValue(vtkMRMLScene::EndBatchProcessEvent);
-  this->SetAndObserveMRMLSceneEventsInternal(newScene, events.GetPointer());
+	vtkNew<vtkIntArray> events;
+	events->InsertNextValue(vtkMRMLScene::NodeAddedEvent);
+	events->InsertNextValue(vtkMRMLScene::NodeRemovedEvent);
+	events->InsertNextValue(vtkMRMLScene::EndBatchProcessEvent);
+	this->SetAndObserveMRMLSceneEventsInternal(newScene, events.GetPointer());
 }
 
 //-----------------------------------------------------------------------------
 void vtkSlicerBoneEnhancerCppLogic::RegisterNodes()
 {
-  assert(this->GetMRMLScene() != 0);
+	assert(this->GetMRMLScene() != 0);
 }
 
 //---------------------------------------------------------------------------
 void vtkSlicerBoneEnhancerCppLogic::UpdateFromMRMLScene()
 {
-  assert(this->GetMRMLScene() != 0);
+	assert(this->GetMRMLScene() != 0);
 }
 
 //---------------------------------------------------------------------------
@@ -118,16 +118,16 @@ float vtkSlicerBoneEnhancerCppLogic
 		int shadowVSIntensity = params->GetValue(3);
 		double smoothingSigma = params->GetValue(4);
 		int transducerMargin = params->GetValue(5);		
-	
+
 		vtkSmartPointer<vtkTimerLog> timer = vtkSmartPointer<vtkTimerLog>::New();
 		timer->StartTimer();
 
 		// Extract BSP from input volume (through pointer) and put result into the output volume's buffer
 		this->Foroughi2007(static_cast<double*>(inputVolumeNode->GetImageData()->GetScalarPointer(0,0,0)), 
-														static_cast<double*>(outputVolumeNode->GetImageData()->GetScalarPointer(0,0,0)), 
-														smoothingSigma, transducerMargin, shadowSigma, 
-														boneThreshold, blurredVSBLoG, shadowVSIntensity,
-														nx, ny, nz);
+			static_cast<double*>(outputVolumeNode->GetImageData()->GetScalarPointer(0,0,0)), 
+			smoothingSigma, transducerMargin, shadowSigma, 
+			boneThreshold, blurredVSBLoG, shadowVSIntensity,
+			nx, ny, nz);
 
 		timer->StopTimer();
 		runtime = timer->GetElapsedTime();
@@ -147,7 +147,7 @@ float vtkSlicerBoneEnhancerCppLogic
 void vtkSlicerBoneEnhancerCppLogic
 ::Foroughi2007(double* inputBuffer, double* outputBuffer, 
 							 double smoothingSigma, int transducerMargin, double shadowSigma, 
-						 	 double boneThreshold, int blurredVSBLoG, int shadowVSIntensity,																				
+							 double boneThreshold, int blurredVSBLoG, int shadowVSIntensity,																				
 							 int nx, int ny, int nz)
 {
 	int sliceSize = nx * ny;
@@ -220,9 +220,9 @@ void vtkSlicerBoneEnhancerCppLogic
 			// Main loop calculating reflection number and shadow value
 			double sumG, sumGI, sumHist;
 			int i, pixelIdx, x, y;
-			#ifdef NDEBUG
-			#pragma omp parallel for reduction(+:sumG,sumGI, sumHist), private(i, x, pixelIdx)
-			#endif		
+#ifdef NDEBUG
+#pragma omp parallel for reduction(+:sumG,sumGI, sumHist), private(i, x, pixelIdx)
+#endif		
 			for (y = 0; y < ny; ++y)
 			{
 				for (x = 0; x < nx; ++x)
@@ -231,11 +231,11 @@ void vtkSlicerBoneEnhancerCppLogic
 
 					// Only include pixels with intensity value larger than a specified threshold
 					if (gaussianBuffer[pixelIdx] >= boneThreshold
-							&& pixelIdx > transducerMargin * nx)
+						&& pixelIdx > transducerMargin * nx)
 					{
 						// Set outermost border pixels to zero and exclude negative pixels
 						if ((x==nx-1 || x==0 || y==ny-1 || y==0) ||
-							 laplacianOfGaussianBuffer[pixelIdx] <= 0) 
+							laplacianOfGaussianBuffer[pixelIdx] <= 0) 
 						{ 
 							laplacianOfGaussianBuffer[pixelIdx] = 0.0;	
 						}
@@ -305,9 +305,9 @@ void vtkSlicerBoneEnhancerCppLogic
 	int resultShape[] = {nx + kx - 1, ny + ky - 1};
 
 	VSLConvTaskPtr task;
-  int status = vsldConvNewTask(&task,VSL_CONV_MODE_AUTO, 2,inputShape, kernelShape, resultShape);
+	int status = vsldConvNewTask(&task,VSL_CONV_MODE_AUTO, 2,inputShape, kernelShape, resultShape);
 
-  status = vsldConvExec(task, inputBuffer, NULL, kernelBuffer, NULL, tempBuffer, NULL);
+	status = vsldConvExec(task, inputBuffer, NULL, kernelBuffer, NULL, tempBuffer, NULL);
 	vslConvDeleteTask(&task);
 
 	this->ResizeMatrix(tempBuffer, outputBuffer, kx, ky, nx + kx - 1, ny + ky - 1);
@@ -330,7 +330,7 @@ void vtkSlicerBoneEnhancerCppLogic
 		{
 			if (x >= xStart && x < xStop && y >= yStart && y < yStop)
 			{
-				 outputBuffer[idx] = inputBuffer[x + y * xInputSize];
+				outputBuffer[idx] = inputBuffer[x + y * xInputSize];
 				++idx;
 			}
 		}
@@ -369,6 +369,6 @@ void vtkSlicerBoneEnhancerCppLogic
 
 	for (int i = 0; i < size; ++i)
 	{
-			buffer[i] = 1 - buffer[i] / maxPixelValue;
+		buffer[i] = 1 - buffer[i] / maxPixelValue;
 	}
 }
