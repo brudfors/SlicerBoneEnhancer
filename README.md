@@ -9,3 +9,12 @@ A free trial of *Intel MKL* can be downloaded from here:
 [https://software.intel.com/en-us/intel-mkl/try-buy](https://software.intel.com/en-us/intel-mkl/try-buy)
 
 One more thing: the *Intel MKL* code uses double data at this moment.
+
+## **Algorithms** ##
+
+-blurredVSBLoG
+-boneThreshold
+-shadowSigma
+-shadowVSIntensity
+-smoothingSigma
+-transducerMargin	
