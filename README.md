@@ -12,6 +12,7 @@ One more thing: the *Intel MKL* code uses double data at this moment.
 This section gives details about the algorithms currently available.
 ### Foroughi ###
 Foroughi, P., et al. (2007) Ultrasound bone segmentation using dynamic programming. IEEE Ultrason Symp 13(4):2523–2526 (with some modifications).
+
 **Parameters:**
 
 * blurredVSBLoG:
