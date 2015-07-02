@@ -47,9 +47,8 @@ public:
 	vtkTypeMacro(vtkSlicerBoneEnhancerCppLogic, vtkSlicerModuleLogic);
 	void PrintSelf(ostream& os, vtkIndent indent);
 
-	/*! Image processing connector method. */
-	float ImageProcessingConnector(vtkMRMLScalarVolumeNode* inputVolumeNode, vtkMRMLScalarVolumeNode* outputVolumeNode, 
-		vtkDoubleArray* params, std::string algorithmName);
+  /*! Image processing connector method. */
+  float ImageProcessingConnector(vtkMRMLScalarVolumeNode* inputVolumeNode, vtkMRMLScalarVolumeNode* outputVolumeNode, vtkDoubleArray* params, std::string algorithmName);
 
 protected:
 	vtkSlicerBoneEnhancerCppLogic();
@@ -66,25 +65,20 @@ private:
 	vtkSlicerBoneEnhancerCppLogic(const vtkSlicerBoneEnhancerCppLogic&); // Not implemented
 	void operator=(const vtkSlicerBoneEnhancerCppLogic&); // Not implemented
 
-	/*! 2D convolution using Intel MKL. */
-	void Conv2(const double* inputBuffer, const double* kernelBuffer, double* tempBuffer, double* outputBuffer, 
-		int nx, int ny, int kx, int ky);
+  /*! 2D convolution using Intel MKL. */
+  void Conv2(const double* inputBuffer, const double* kernelBuffer, double* tempBuffer, double* outputBuffer, int nx, int ny, int kx, int ky);
 
-	/*! Performs cropping of a 2D matrix stored in a buffer. */
-	void ResizeMatrix(const double* inputBuffer, double* outputBuffer, 
-		int xClipping, int yClipping, int xInputSize, int yInputSize);
+  /*! Performs cropping of a 2D matrix stored in a buffer. */
+  void ResizeMatrix(const double* inputBuffer, double* outputBuffer, int xClipping, int yClipping, int xInputSize, int yInputSize);
 
-	/*! Returns the maximum value of an image stored in a buffer. */
-	double GetMaxPixelValue(const double* buffer, int size);
+  /*! Returns the maximum value of an image stored in a buffer. */
+  double GetMaxPixelValue(const double* buffer, int size);
 
-	/*! Normalizes an image stored in a buffer. */
-	void Normalize(double* buffer, int size, bool doInverse);
+  /*! Normalizes an image stored in a buffer. */
+  void Normalize(double* buffer, int size, bool doInverse);
 
-	/*! Extracts the bone surface probability from an US volume. */
-	void Foroughi2007(double* inputBuffer, double* outputBuffer, 
-		double smoothingSigma, int transducerMargin, double shadowSigma, 
-		double boneThreshold, int blurredVSBLoG, int shadowVSIntensity,																				
-		int nx, int ny, int nz);
+  /*! Extracts the bone surface probability from an US volume. */
+  void Foroughi2007(double* inputBuffer, double* outputBuffer, double smoothingSigma, int transducerMargin, double shadowSigma, double boneThreshold, int blurredVSBLoG, int shadowVSIntensity, int nx, int ny, int nz);
 
 };
 

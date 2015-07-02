@@ -191,26 +191,6 @@ class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
     slicer.mrmlScene.AddNode(volumeNode)
     self.BSPVolumeNode = volumeNode
     return True
-  
-  def castVolumeNodeToDouble(self, inputVolumeNode):
-    inputImageData = inputVolumeNode.GetImageData()
-    imageSize = inputImageData.GetDimensions()
-    imageSpacing = inputVolumeNode.GetSpacing()
-    imageOrigin = inputVolumeNode.GetOrigin()
-    
-    castFilter = vtk.vtkImageCast()
-    castFilter.SetInputData(inputImageData)
-    castFilter.SetOutputScalarTypeToDouble()
-   
-    inputVolumeNode=slicer.vtkMRMLScalarVolumeNode()
-    inputVolumeNode.SetSpacing(imageSpacing)
-    inputVolumeNode.SetOrigin(imageOrigin)    
-    inputVolumeNode.SetName('Double')
-    inputVolumeNode.SetImageDataConnection(castFilter.GetOutputPort())
-    
-    slicer.mrmlScene.AddNode(inputVolumeNode)
-    
-    return True
     
   def extractBSP(self, inputVolumeNode, paramsVTK, runtimeLabel=None):     
     logging.info('Extracting BSP started')
