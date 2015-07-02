@@ -10,11 +10,11 @@ A free trial of *Intel MKL* can be downloaded from here:
 
 One more thing: the *Intel MKL* code uses double data at this moment.
 
-## **Algorithms** ##
+## Algorithms ##
 
 -blurredVSBLoG
 -boneThreshold
 -shadowSigma
 -shadowVSIntensity
 -smoothingSigma
--transducerMargin	
+-transducerMargin
