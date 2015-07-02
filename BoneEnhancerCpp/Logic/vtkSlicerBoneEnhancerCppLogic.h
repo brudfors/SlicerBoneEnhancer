@@ -39,7 +39,7 @@ class vtkDoubleArray;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_BONEENHANCERCPP_MODULE_LOGIC_EXPORT vtkSlicerBoneEnhancerCppLogic :
-	public vtkSlicerModuleLogic
+  public vtkSlicerModuleLogic
 {
 public:
   static vtkSlicerBoneEnhancerCppLogic *New();
