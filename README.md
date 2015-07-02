@@ -15,9 +15,9 @@ Foroughi, P., et al. (2007) Ultrasound bone segmentation using dynamic programmi
 
 **Parameters:**
 
-* blurredVSBLoG:
+* blurredVSBLoG: Controlls the ratio between the Gaussian blurring and the Laplacian of Gaussian.
 
-* boneThreshold:
+* boneThreshold: Defines the probability threshold if a pixel to be considered bone or not.
 
 * shadowSigma:
 
