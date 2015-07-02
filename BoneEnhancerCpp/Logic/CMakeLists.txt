@@ -4,10 +4,13 @@ set(KIT ${PROJECT_NAME})
 
 set(${KIT}_EXPORT_DIRECTIVE "VTK_SLICER_${MODULE_NAME_UPPER}_MODULE_LOGIC_EXPORT")
 
-# set(IntelComposerXEdir "C:/Program Files (x86)/Intel/Composer XE 2015")
 find_path(IntelComposerXEdir IntelComposerXE
-  PATHS "C:/Program Files (x86)/Intel/Composer XE 2015"
+  PATHS "C:/Program Files (x86)/Intel/Composer XE 2015/"
   DOC "A path to Intel Composer XE" )
+
+if (NOT IntelComposerXEdir)
+  message( FATAL_ERROR "A path to Intel Composer XE is invalid." )
+endif()
 
 set(${KIT}_INCLUDE_DIRECTORIES
   "${IntelComposerXEdir}/mkl/include"
