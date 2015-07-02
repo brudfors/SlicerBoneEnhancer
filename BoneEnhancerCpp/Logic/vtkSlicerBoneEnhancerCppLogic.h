@@ -42,28 +42,27 @@ class VTK_SLICER_BONEENHANCERCPP_MODULE_LOGIC_EXPORT vtkSlicerBoneEnhancerCppLog
 	public vtkSlicerModuleLogic
 {
 public:
-
-	static vtkSlicerBoneEnhancerCppLogic *New();
-	vtkTypeMacro(vtkSlicerBoneEnhancerCppLogic, vtkSlicerModuleLogic);
-	void PrintSelf(ostream& os, vtkIndent indent);
+  static vtkSlicerBoneEnhancerCppLogic *New();
+  vtkTypeMacro(vtkSlicerBoneEnhancerCppLogic, vtkSlicerModuleLogic);
+  void PrintSelf(ostream& os, vtkIndent indent);
 
   /*! Image processing connector method. */
   float ImageProcessingConnector(vtkMRMLScalarVolumeNode* inputVolumeNode, vtkMRMLScalarVolumeNode* outputVolumeNode, vtkDoubleArray* params, std::string algorithmName);
 
 protected:
-	vtkSlicerBoneEnhancerCppLogic();
-	virtual ~vtkSlicerBoneEnhancerCppLogic();
+  vtkSlicerBoneEnhancerCppLogic();
+  virtual ~vtkSlicerBoneEnhancerCppLogic();
 
-	virtual void SetMRMLSceneInternal(vtkMRMLScene* newScene);
-	/// Register MRML Node classes to Scene. Gets called automatically when the MRMLScene is attached to this logic class.
-	virtual void RegisterNodes();
-	virtual void UpdateFromMRMLScene();
-	virtual void OnMRMLSceneNodeAdded(vtkMRMLNode* node);
-	virtual void OnMRMLSceneNodeRemoved(vtkMRMLNode* node);
+  virtual void SetMRMLSceneInternal(vtkMRMLScene* newScene);
+  /// Register MRML Node classes to Scene. Gets called automatically when the MRMLScene is attached to this logic class.
+  virtual void RegisterNodes();
+  virtual void UpdateFromMRMLScene();
+  virtual void OnMRMLSceneNodeAdded(vtkMRMLNode* node);
+  virtual void OnMRMLSceneNodeRemoved(vtkMRMLNode* node);
+  
 private:
-
-	vtkSlicerBoneEnhancerCppLogic(const vtkSlicerBoneEnhancerCppLogic&); // Not implemented
-	void operator=(const vtkSlicerBoneEnhancerCppLogic&); // Not implemented
+  vtkSlicerBoneEnhancerCppLogic(const vtkSlicerBoneEnhancerCppLogic&); // Not implemented
+  void operator=(const vtkSlicerBoneEnhancerCppLogic&); // Not implemented
 
   /*! 2D convolution using Intel MKL. */
   void Conv2(const double* inputBuffer, const double* kernelBuffer, double* tempBuffer, double* outputBuffer, int nx, int ny, int kx, int ky);
@@ -79,7 +78,6 @@ private:
 
   /*! Extracts the bone surface probability from an US volume. */
   void Foroughi2007(double* inputBuffer, double* outputBuffer, double smoothingSigma, int transducerMargin, double shadowSigma, double boneThreshold, int blurredVSBLoG, int shadowVSIntensity, int nx, int ny, int nz);
-
 };
 
 #endif

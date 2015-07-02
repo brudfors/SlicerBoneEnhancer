@@ -65,23 +65,23 @@ void vtkSlicerBoneEnhancerCppLogic::PrintSelf(ostream& os, vtkIndent indent)
 //---------------------------------------------------------------------------
 void vtkSlicerBoneEnhancerCppLogic::SetMRMLSceneInternal(vtkMRMLScene * newScene)
 {
-	vtkNew<vtkIntArray> events;
-	events->InsertNextValue(vtkMRMLScene::NodeAddedEvent);
-	events->InsertNextValue(vtkMRMLScene::NodeRemovedEvent);
-	events->InsertNextValue(vtkMRMLScene::EndBatchProcessEvent);
-	this->SetAndObserveMRMLSceneEventsInternal(newScene, events.GetPointer());
+  vtkNew<vtkIntArray> events;
+  events->InsertNextValue(vtkMRMLScene::NodeAddedEvent);
+  events->InsertNextValue(vtkMRMLScene::NodeRemovedEvent);
+  events->InsertNextValue(vtkMRMLScene::EndBatchProcessEvent);
+  this->SetAndObserveMRMLSceneEventsInternal(newScene, events.GetPointer());
 }
 
 //-----------------------------------------------------------------------------
 void vtkSlicerBoneEnhancerCppLogic::RegisterNodes()
 {
-	assert(this->GetMRMLScene() != 0);
+  assert(this->GetMRMLScene() != 0);
 }
 
 //---------------------------------------------------------------------------
 void vtkSlicerBoneEnhancerCppLogic::UpdateFromMRMLScene()
 {
-	assert(this->GetMRMLScene() != 0);
+  assert(this->GetMRMLScene() != 0);
 }
 
 //---------------------------------------------------------------------------
