@@ -1,4 +1,4 @@
-### **BoneEnhancer** ###
+# BoneEnhancer #
 
 A 3D Slicer module which enhances bone in images. It is possible to test the module from 3D Slicer pressing *Reload and Test*, which uses a lumbar spine US volume (available in MIDAS).
 
@@ -12,9 +12,12 @@ One more thing: the *Intel MKL* code uses double data at this moment.
 
 ## Algorithms ##
 
--blurredVSBLoG
--boneThreshold
--shadowSigma
--shadowVSIntensity
--smoothingSigma
--transducerMargin
+### Foroughi ###
+
+**Parameters:**
+* blurredVSBLoG
+* boneThreshold
+* shadowSigma
+* shadowVSIntensity
+* smoothingSigma
+* transducerMargin
