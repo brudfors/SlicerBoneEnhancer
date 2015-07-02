@@ -15,14 +15,14 @@ Foroughi, P., et al. (2007) Ultrasound bone segmentation using dynamic programmi
 
 **Parameters:**
 
-* blurredVSBLoG: Controlls the ratio between the Gaussian blurring and the Laplacian of Gaussian.
+* **blurredVSBLoG** - Controlls the ratio between the Gaussian blurring and the Laplacian of Gaussian.
 
-* boneThreshold: Defines the probability threshold for a pixel to be considered bone or not.
+* **boneThreshold** - Defines the probability threshold for a pixel to be considered bone or not.
 
-* shadowSigma: Standard deviation of the Gaussian weighting function which models the transition of high intensity pixels close to bone surface to the dark pixels deeper under the bone.
+* **shadowSigma** - Standard deviation of the Gaussian weighting function which models the transition of high intensity pixels close to bone surface to the dark pixels deeper under the bone.
 
-* shadowVSIntensity: Controlls the ratio between the shadow map and the reflection number.
+* **shadowVSIntensity** - Controlls the ratio between the shadow map and the reflection number.
 
-* smoothingSigma: Defines the size of the Gaussian kernel used for blurring.
+* **smoothingSigma** - Defines the size of the Gaussian kernel used for blurring.
 
-* transducerMargin: Defines the number of rows to exclude from the top part of the image (close to the transducer head).
+* **transducerMargin** - Defines the number of rows to exclude from the top part of the image (close to the transducer head).
