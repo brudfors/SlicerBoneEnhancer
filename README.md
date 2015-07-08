@@ -24,7 +24,7 @@ Foroughi, P., et al. (2007) Ultrasound bone segmentation using dynamic programmi
 
 * **shadowSigma** - Standard deviation of the Gaussian weighting function which models the transition of high intensity pixels close to bone surface to the dark pixels deeper under the bone.
 
-* **shadowVSIntensity** - Controlls the ratio between the shadow map and the reflection number.
+* **shadowVSIntensity** - Controls the ratio between the shadow map and the reflection number.
 
 * **smoothingSigma** - Defines the size of the Gaussian kernel used for blurring.
 
