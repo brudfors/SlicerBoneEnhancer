@@ -240,22 +240,26 @@ class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
     # Add volume to scene
     slicer.mrmlScene.AddNode(volumeNode)
     self.BSPVolumeNode = volumeNode
+    
     return True
 
   def castVolumeNodeToDouble(self, inputVolumeNode, outputVolumeNode):
     inputImageData = inputVolumeNode.GetImageData()
-    imageSize = inputImageData.GetDimensions()
     imageSpacing = inputVolumeNode.GetSpacing()
     imageOrigin = inputVolumeNode.GetOrigin()
     
     castFilter = vtk.vtkImageCast()
     castFilter.SetInputData(inputImageData)
     castFilter.SetOutputScalarTypeToDouble()
-    castFilter.Update()
     
+    flipFilter = vtk.vtkImageFlip()
+    flipFilter.SetFilteredAxis(1)
+    flipFilter.SetInputConnection(castFilter.GetOutputPort())
+    flipFilter.Update()
+
     outputVolumeNode.SetSpacing(imageSpacing)
     outputVolumeNode.SetOrigin(imageOrigin)    
-    outputVolumeNode.SetAndObserveImageData(castFilter.GetOutput())
+    outputVolumeNode.SetAndObserveImageData(flipFilter.GetOutput())
         
     return True
     
