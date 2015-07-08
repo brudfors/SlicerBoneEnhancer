@@ -232,6 +232,7 @@ class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
     imageData.SetDimensions(imageSize)
     imageData.AllocateScalars(voxelType, 1)    
     # Create volume node
+    scene = slicer.mrmlScene
     volumeNode=slicer.vtkMRMLScalarVolumeNode()
     volumeNode.SetSpacing(imageSpacing)
     volumeNode.SetOrigin(imageOrigin)
