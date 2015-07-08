@@ -80,7 +80,7 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
     
     ############################################################ Bone Surface Probability (BSP)
     BSPCollapsibleButton = ctk.ctkCollapsibleButton()
-    BSPCollapsibleButton.text = "Bone Surface Probability (BSP) [Foroughi2007]"
+    BSPCollapsibleButton.text = "Bone Surface Probability (BSP) [Foroughi2007 w. minor mods]"
     self.layout.addWidget(BSPCollapsibleButton)
 
     BSPFormLayout = qt.QFormLayout(BSPCollapsibleButton)
@@ -106,11 +106,11 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
     
     # Define algorithms
     self.BSPParams = AlgorithmParams(("Foroughi [1]", "Runs Foroughi's algorithm on the input US volume.", "Extract Bone Features"),
-              {"Smoothing Sigma" : (1, 1, 1, 10, 3, "Smoothing Sigma ToolTip"),
-               "Transducer Margin" : (0, 1, 0, 100, 15, "Transducer Margin ToolTip"),
-               "Shadow Sigma" : (1, 1, 1, 10, 2, "Shadow Sigma ToolTip"),
-               "Bone Threshold" : (1, 0.1, 0, 1, 0.3, "Bone Threshold ToolTip"),
-               "Blurred vs. BLoG" : (0, 1, 1, 10, 1, "Blurred vs. BLoG ToolTip"),
+              {"Smoothing Sigma" : (1, 1, 1, 10, 5.0, "Smoothing Sigma ToolTip"),
+               "Transducer Margin" : (0, 1, 0, 100, 60, "Transducer Margin ToolTip"),
+               "Shadow Sigma" : (1, 1, 1, 10, 6.0, "Shadow Sigma ToolTip"),
+               "Bone Threshold" : (1, 0.1, 0, 1, 0.4, "Bone Threshold ToolTip"),
+               "Blurred vs. BLoG" : (0, 1, 1, 10, 3, "Blurred vs. BLoG ToolTip"),
                "Shadow vs. Intensity" : (0, 1, 1, 10, 5, "Shadow vs. Intensity ToolTip")})
             
     for paramKey in self.BSPParams.GetParamKeys():
