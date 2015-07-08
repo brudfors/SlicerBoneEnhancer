@@ -173,6 +173,7 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
     if self.BSPInputSelector.currentNode().GetImageData().GetScalarType() is vtk.VTK_DOUBLE:
       self.boneEnhancerPyLogic.extractBSP(self.BSPInputSelector.currentNode(), self.BSPParams.GetParamsVTK(), self.runtimeLabel, self.BSPExtractButton)
     else:
+      self.BSPExtractButton.checked = False
       logging.warning('Input image scalar type not double! Please use Cast To Double.')
 
 #
