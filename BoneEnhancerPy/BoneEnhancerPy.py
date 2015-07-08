@@ -236,7 +236,7 @@ class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
     volumeNode.SetSpacing(imageSpacing)
     volumeNode.SetOrigin(imageOrigin)
     volumeNode.SetAndObserveImageData(imageData)
-    volumeNode.SetName(volumeName)
+    volumeNode.SetName(scene.GenerateUniqueName(volumeName))
     # Add volume to scene
     slicer.mrmlScene.AddNode(volumeNode)
     self.BSPVolumeNode = volumeNode
