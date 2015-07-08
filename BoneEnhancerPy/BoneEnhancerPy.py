@@ -41,6 +41,43 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
   def setup(self):
     ScriptedLoadableModuleWidget.setup(self)
 
+    ############################################################ Cast To Double
+    castToDoubleCollapsibleButton = ctk.ctkCollapsibleButton()
+    castToDoubleCollapsibleButton.text = "Cast To Double"
+    self.layout.addWidget(castToDoubleCollapsibleButton)
+
+    castToDoubleFormLayout = qt.QFormLayout(castToDoubleCollapsibleButton)
+
+    self.castToDoubleInputSelector = slicer.qMRMLNodeComboBox()
+    self.castToDoubleInputSelector.nodeTypes = ( ("vtkMRMLScalarVolumeNode"), "" )
+    self.castToDoubleInputSelector.addAttribute( "vtkMRMLScalarVolumeNode", "LabelMap", 0 )
+    self.castToDoubleInputSelector.selectNodeUponCreation = True
+    self.castToDoubleInputSelector.addEnabled = False
+    self.castToDoubleInputSelector.removeEnabled = False
+    self.castToDoubleInputSelector.noneEnabled = False
+    self.castToDoubleInputSelector.showHidden = False
+    self.castToDoubleInputSelector.showChildNodeTypes = False
+    self.castToDoubleInputSelector.setMRMLScene( slicer.mrmlScene )
+    castToDoubleFormLayout.addRow("Input Volume: ", self.castToDoubleInputSelector)
+    
+    self.castToDoubleOutputSelector = slicer.qMRMLNodeComboBox()
+    self.castToDoubleOutputSelector.nodeTypes = ( ("vtkMRMLScalarVolumeNode"), "" )
+    self.castToDoubleOutputSelector.addAttribute( "vtkMRMLScalarVolumeNode", "LabelMap", 0 )
+    self.castToDoubleOutputSelector.selectNodeUponCreation = True
+    self.castToDoubleOutputSelector.addEnabled = True
+    self.castToDoubleOutputSelector.editEnabled = False
+    self.castToDoubleOutputSelector.removeEnabled = True
+    self.castToDoubleOutputSelector.renameEnabled = True
+    self.castToDoubleOutputSelector.noneEnabled = False
+    self.castToDoubleOutputSelector.showHidden = False
+    self.castToDoubleOutputSelector.showChildNodeTypes = False
+    self.castToDoubleOutputSelector.setMRMLScene( slicer.mrmlScene )
+    castToDoubleFormLayout.addRow("Double Output Volume: ", self.castToDoubleOutputSelector)
+    
+    self.castToDoubleApplyButton = qt.QPushButton("Apply")
+    self.castToDoubleApplyButton.enabled = False
+    castToDoubleFormLayout.addRow(self.castToDoubleApplyButton)
+    
     ############################################################ Bone Surface Probability (BSP)
     BSPCollapsibleButton = ctk.ctkCollapsibleButton()
     BSPCollapsibleButton.text = "Bone Surface Probability (BSP) [Foroughi2007]"
@@ -103,12 +140,16 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
     self.BSPExtractButton = qt.QPushButton("Extract BSP")
     self.BSPExtractButton.toolTip = "Run the algorithm."
     self.BSPExtractButton.enabled = False
+    self.BSPExtractButton.checkable = True
     BSPFormLayout.addRow(self.BSPExtractButton)
-
+   
     ############################################################ Connections
     self.BSPExtractButton.connect('clicked(bool)', self.onBSPExtractButton)
     self.BSPInputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
-
+    self.castToDoubleApplyButton.connect('clicked(bool)', self.onCastToDoubleApplyButton)
+    self.castToDoubleInputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
+    self.castToDoubleOutputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
+    
     self.layout.addStretch(1)
     self.onSelect()
     self.boneEnhancerPyLogic = None
@@ -118,13 +159,21 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
 
   def onSelect(self):
     self.BSPExtractButton.enabled = self.BSPInputSelector.currentNode()
-
+    self.castToDoubleApplyButton.enabled = self.castToDoubleInputSelector.currentNode() and self.castToDoubleOutputSelector.currentNode()
+    
+  def onCastToDoubleApplyButton(self):
+    boneEnhancerPyLogic = BoneEnhancerPyLogic()
+    boneEnhancerPyLogic.castVolumeNodeToDouble(self.castToDoubleInputSelector.currentNode(), self.castToDoubleOutputSelector.currentNode())
+  
   def onBSPExtractButton(self):
     if not self.boneEnhancerPyLogic:
       self.boneEnhancerPyLogic = BoneEnhancerPyLogic()
     if not self.boneEnhancerPyLogic.BSPVolumeNode:
-      self.boneEnhancerPyLogic.createVolumeNode(self.BSPInputSelector.currentNode(), 'BSP')
-    self.boneEnhancerPyLogic.extractBSP(self.BSPInputSelector.currentNode(), self.BSPParams.GetParamsVTK(), self.runtimeLabel)
+      self.boneEnhancerPyLogic.createVolumeNode(self.BSPInputSelector.currentNode(), 'BSP')        
+    if self.BSPInputSelector.currentNode().GetImageData().GetScalarType() is vtk.VTK_DOUBLE:
+      self.boneEnhancerPyLogic.extractBSP(self.BSPInputSelector.currentNode(), self.BSPParams.GetParamsVTK(), self.runtimeLabel, self.BSPExtractButton)
+    else:
+      logging.warning('Input image scalar type not double! Please use Cast To Double.')
 
 #
 # BoneEnhancerPyLogic
@@ -191,8 +240,25 @@ class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
     slicer.mrmlScene.AddNode(volumeNode)
     self.BSPVolumeNode = volumeNode
     return True
+
+  def castVolumeNodeToDouble(self, inputVolumeNode, outputVolumeNode):
+    inputImageData = inputVolumeNode.GetImageData()
+    imageSize = inputImageData.GetDimensions()
+    imageSpacing = inputVolumeNode.GetSpacing()
+    imageOrigin = inputVolumeNode.GetOrigin()
     
-  def extractBSP(self, inputVolumeNode, paramsVTK, runtimeLabel=None):     
+    castFilter = vtk.vtkImageCast()
+    castFilter.SetInputData(inputImageData)
+    castFilter.SetOutputScalarTypeToDouble()
+    castFilter.Update()
+    
+    outputVolumeNode.SetSpacing(imageSpacing)
+    outputVolumeNode.SetOrigin(imageOrigin)    
+    outputVolumeNode.SetAndObserveImageData(castFilter.GetOutput())
+        
+    return True
+    
+  def extractBSP(self, inputVolumeNode, paramsVTK, runtimeLabel=None, BSPExtractButton=None):     
     logging.info('Extracting BSP started')
     runtime = slicer.modules.boneenhancercpp.logic().ImageProcessingConnector(inputVolumeNode, self.BSPVolumeNode, paramsVTK, 'Foroughi2007')
     runtime = str(round(runtime, 3)) 
@@ -203,6 +269,8 @@ class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
     
     self.setBSPLayout(inputVolumeNode)
     self.BSPVolumeNode.Modified()
+    if BSPExtractButton:
+      BSPExtractButton.checked = False
     
     return True
 
