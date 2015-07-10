@@ -1,7 +1,7 @@
 ![Capture.PNG](https://bitbucket.org/repo/LK76Gq/images/1778480745-Capture.PNG)
 
 # BoneEnhancer #
-A 3D Slicer module which enhances bone in images. It is possible to test the module from 3D Slicer pressing *Reload and Test*, which uses a lumbar spine US volume (available in MIDAS).
+A 3D Slicer module which enhances bone in US images. It is possible to test the module from 3D Slicer pressing *Reload and Test*, which uses a lumbar spine US volume (available in MIDAS).
 
 The module uses *OpenMP* and *Intel MKL*. A free trial of *Intel MKL* can be downloaded from here:
 
@@ -13,7 +13,7 @@ Also, remember to add the *Intel MKL* dlls to your path: ...\mkl\redist\intel64\
 One more thing: the *Intel MKL* code uses double data at this moment.
 ## Available Algorithms ##
 This section gives details about the algorithms currently available.
-### Foroughi ###
+### Foroughi w. minor mods ###
 Foroughi, P., et al. (2007) Ultrasound bone segmentation using dynamic programming. IEEE Ultrason Symp 13(4):2523–2526 (with some modifications).
 
 **Parameters:**
