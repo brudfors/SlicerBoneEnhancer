@@ -29,10 +29,7 @@ class BoneEnhancerPy(ScriptedLoadableModule):
     and Steve Pieper, Isomics, Inc. and was partially funded by NIH grant 3P41RR013218-12S1.
 """ # replace with organization, grant and thanks.
 
-#
-# BoneEnhancerPyWidget
-#
-
+############################################################ BoneEnhancerPyWidget
 class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
   """Uses ScriptedLoadableModuleWidget base class, available at:
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
@@ -104,7 +101,7 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
     BSPParamsFormLayout = qt.QFormLayout(self.BSPParamsGroupBox)
     BSPFormLayout.addRow(self.BSPParamsGroupBox)
     
-    # Define algorithms
+    # Define Foroughi algorithm parameters
     self.BSPParams = AlgorithmParams(("Foroughi [1]", "Runs Foroughi's algorithm on the input US volume.", "Extract Bone Features"),
               {"Smoothing Sigma" : (1, 1, 1, 10, 5.0, "Smoothing Sigma ToolTip"),
                "Transducer Margin" : (0, 1, 0, 100, 60, "Transducer Margin ToolTip"),
@@ -176,10 +173,7 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
       self.BSPExtractButton.checked = False
       logging.warning('Input image scalar type not double! Please use Cast To Double.')
 
-#
-# BoneEnhancerPyLogic
-#
-
+############################################################ BoneEnhancerPyLogic
 class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
   """This class should implement all the actual
   computation done by your module.  The interface
@@ -354,10 +348,8 @@ class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
       
     return True
 
-#
-# AlgorithmParams
-#
-
+############################################################ AlgorithmParams
+# Defines parameters for an algorithm through a ctkSliderWidget, a QRadioButton and a QLabel.
 class AlgorithmParams:
   def __init__(self, algo, params):
     self.name = algo[0]
@@ -404,6 +396,7 @@ class AlgorithmParams:
     paramsVtkDoubleArray = numpy_support.numpy_to_vtk(num_array=params, deep=True, array_type=vtk.VTK_DOUBLE)
     return paramsVtkDoubleArray
 
+############################################################ BoneEnhancerPyTest
 class BoneEnhancerPyTest(ScriptedLoadableModuleTest):
   """
   This is the test case for your scripted module.
