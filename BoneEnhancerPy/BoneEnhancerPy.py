@@ -29,10 +29,7 @@ class BoneEnhancerPy(ScriptedLoadableModule):
     and Steve Pieper, Isomics, Inc. and was partially funded by NIH grant 3P41RR013218-12S1.
 """ # replace with organization, grant and thanks.
 
-#
-# BoneEnhancerPyWidget
-#
-
+############################################################ BoneEnhancerPyWidget
 class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
   """Uses ScriptedLoadableModuleWidget base class, available at:
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
@@ -41,9 +38,46 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
   def setup(self):
     ScriptedLoadableModuleWidget.setup(self)
 
+    ############################################################ Cast To Double
+    castToDoubleCollapsibleButton = ctk.ctkCollapsibleButton()
+    castToDoubleCollapsibleButton.text = "Cast To Double"
+    self.layout.addWidget(castToDoubleCollapsibleButton)
+
+    castToDoubleFormLayout = qt.QFormLayout(castToDoubleCollapsibleButton)
+
+    self.castToDoubleInputSelector = slicer.qMRMLNodeComboBox()
+    self.castToDoubleInputSelector.nodeTypes = ( ("vtkMRMLScalarVolumeNode"), "" )
+    self.castToDoubleInputSelector.addAttribute( "vtkMRMLScalarVolumeNode", "LabelMap", 0 )
+    self.castToDoubleInputSelector.selectNodeUponCreation = True
+    self.castToDoubleInputSelector.addEnabled = False
+    self.castToDoubleInputSelector.removeEnabled = False
+    self.castToDoubleInputSelector.noneEnabled = False
+    self.castToDoubleInputSelector.showHidden = False
+    self.castToDoubleInputSelector.showChildNodeTypes = False
+    self.castToDoubleInputSelector.setMRMLScene( slicer.mrmlScene )
+    castToDoubleFormLayout.addRow("Input Volume: ", self.castToDoubleInputSelector)
+    
+    self.castToDoubleOutputSelector = slicer.qMRMLNodeComboBox()
+    self.castToDoubleOutputSelector.nodeTypes = ( ("vtkMRMLScalarVolumeNode"), "" )
+    self.castToDoubleOutputSelector.addAttribute( "vtkMRMLScalarVolumeNode", "LabelMap", 0 )
+    self.castToDoubleOutputSelector.selectNodeUponCreation = True
+    self.castToDoubleOutputSelector.addEnabled = True
+    self.castToDoubleOutputSelector.editEnabled = False
+    self.castToDoubleOutputSelector.removeEnabled = True
+    self.castToDoubleOutputSelector.renameEnabled = True
+    self.castToDoubleOutputSelector.noneEnabled = False
+    self.castToDoubleOutputSelector.showHidden = False
+    self.castToDoubleOutputSelector.showChildNodeTypes = False
+    self.castToDoubleOutputSelector.setMRMLScene( slicer.mrmlScene )
+    castToDoubleFormLayout.addRow("Double Output Volume: ", self.castToDoubleOutputSelector)
+    
+    self.castToDoubleApplyButton = qt.QPushButton("Apply")
+    self.castToDoubleApplyButton.enabled = False
+    castToDoubleFormLayout.addRow(self.castToDoubleApplyButton)
+    
     ############################################################ Bone Surface Probability (BSP)
     BSPCollapsibleButton = ctk.ctkCollapsibleButton()
-    BSPCollapsibleButton.text = "Bone Surface Probability (BSP) [Foroughi2007]"
+    BSPCollapsibleButton.text = "Bone Surface Probability (BSP) [Foroughi2007 w. minor mods]"
     self.layout.addWidget(BSPCollapsibleButton)
 
     BSPFormLayout = qt.QFormLayout(BSPCollapsibleButton)
@@ -67,13 +101,13 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
     BSPParamsFormLayout = qt.QFormLayout(self.BSPParamsGroupBox)
     BSPFormLayout.addRow(self.BSPParamsGroupBox)
     
-    # Define algorithms
+    # Define Foroughi algorithm parameters
     self.BSPParams = AlgorithmParams(("Foroughi [1]", "Runs Foroughi's algorithm on the input US volume.", "Extract Bone Features"),
-              {"Smoothing Sigma" : (1, 1, 1, 10, 3, "Smoothing Sigma ToolTip"),
-               "Transducer Margin" : (0, 1, 0, 100, 15, "Transducer Margin ToolTip"),
-               "Shadow Sigma" : (1, 1, 1, 10, 2, "Shadow Sigma ToolTip"),
-               "Bone Threshold" : (1, 0.1, 0, 1, 0.3, "Bone Threshold ToolTip"),
-               "Blurred vs. BLoG" : (0, 1, 1, 10, 1, "Blurred vs. BLoG ToolTip"),
+              {"Smoothing Sigma" : (1, 1, 1, 10, 5.0, "Smoothing Sigma ToolTip"),
+               "Transducer Margin" : (0, 1, 0, 100, 60, "Transducer Margin ToolTip"),
+               "Shadow Sigma" : (1, 1, 1, 10, 6.0, "Shadow Sigma ToolTip"),
+               "Bone Threshold" : (1, 0.1, 0, 1, 0.4, "Bone Threshold ToolTip"),
+               "Blurred vs. BLoG" : (0, 1, 1, 10, 3, "Blurred vs. BLoG ToolTip"),
                "Shadow vs. Intensity" : (0, 1, 1, 10, 5, "Shadow vs. Intensity ToolTip")})
             
     for paramKey in self.BSPParams.GetParamKeys():
@@ -103,12 +137,16 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
     self.BSPExtractButton = qt.QPushButton("Extract BSP")
     self.BSPExtractButton.toolTip = "Run the algorithm."
     self.BSPExtractButton.enabled = False
+    self.BSPExtractButton.checkable = True
     BSPFormLayout.addRow(self.BSPExtractButton)
-
+   
     ############################################################ Connections
     self.BSPExtractButton.connect('clicked(bool)', self.onBSPExtractButton)
     self.BSPInputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
-
+    self.castToDoubleApplyButton.connect('clicked(bool)', self.onCastToDoubleApplyButton)
+    self.castToDoubleInputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
+    self.castToDoubleOutputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
+    
     self.layout.addStretch(1)
     self.onSelect()
     self.boneEnhancerPyLogic = None
@@ -118,18 +156,24 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
 
   def onSelect(self):
     self.BSPExtractButton.enabled = self.BSPInputSelector.currentNode()
-
+    self.castToDoubleApplyButton.enabled = self.castToDoubleInputSelector.currentNode() and self.castToDoubleOutputSelector.currentNode()
+    
+  def onCastToDoubleApplyButton(self):
+    boneEnhancerPyLogic = BoneEnhancerPyLogic()
+    boneEnhancerPyLogic.castVolumeNodeToDouble(self.castToDoubleInputSelector.currentNode(), self.castToDoubleOutputSelector.currentNode())
+  
   def onBSPExtractButton(self):
     if not self.boneEnhancerPyLogic:
       self.boneEnhancerPyLogic = BoneEnhancerPyLogic()
     if not self.boneEnhancerPyLogic.BSPVolumeNode:
-      self.boneEnhancerPyLogic.createVolumeNode(self.BSPInputSelector.currentNode(), 'BSP')
-    self.boneEnhancerPyLogic.extractBSP(self.BSPInputSelector.currentNode(), self.BSPParams.GetParamsVTK(), self.runtimeLabel)
+      self.boneEnhancerPyLogic.createVolumeNode(self.BSPInputSelector.currentNode(), 'BSP')        
+    if self.BSPInputSelector.currentNode().GetImageData().GetScalarType() is vtk.VTK_DOUBLE:
+      self.boneEnhancerPyLogic.extractBSP(self.BSPInputSelector.currentNode(), self.BSPParams.GetParamsVTK(), self.runtimeLabel, self.BSPExtractButton)
+    else:
+      self.BSPExtractButton.checked = False
+      logging.warning('Input image scalar type not double! Please use Cast To Double.')
 
-#
-# BoneEnhancerPyLogic
-#
-
+############################################################ BoneEnhancerPyLogic
 class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
   """This class should implement all the actual
   computation done by your module.  The interface
@@ -182,17 +226,39 @@ class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
     imageData.SetDimensions(imageSize)
     imageData.AllocateScalars(voxelType, 1)    
     # Create volume node
+    scene = slicer.mrmlScene
     volumeNode=slicer.vtkMRMLScalarVolumeNode()
     volumeNode.SetSpacing(imageSpacing)
     volumeNode.SetOrigin(imageOrigin)
     volumeNode.SetAndObserveImageData(imageData)
-    volumeNode.SetName(volumeName)
+    volumeNode.SetName(scene.GenerateUniqueName(volumeName))
     # Add volume to scene
     slicer.mrmlScene.AddNode(volumeNode)
     self.BSPVolumeNode = volumeNode
+    
+    return True
+
+  def castVolumeNodeToDouble(self, inputVolumeNode, outputVolumeNode):
+    inputImageData = inputVolumeNode.GetImageData()
+    imageSpacing = inputVolumeNode.GetSpacing()
+    imageOrigin = inputVolumeNode.GetOrigin()
+    
+    castFilter = vtk.vtkImageCast()
+    castFilter.SetInputData(inputImageData)
+    castFilter.SetOutputScalarTypeToDouble()
+    
+    flipFilter = vtk.vtkImageFlip()
+    flipFilter.SetFilteredAxis(1)
+    flipFilter.SetInputConnection(castFilter.GetOutputPort())
+    flipFilter.Update()
+
+    outputVolumeNode.SetSpacing(imageSpacing)
+    outputVolumeNode.SetOrigin(imageOrigin)    
+    outputVolumeNode.SetAndObserveImageData(flipFilter.GetOutput())
+        
     return True
     
-  def extractBSP(self, inputVolumeNode, paramsVTK, runtimeLabel=None):     
+  def extractBSP(self, inputVolumeNode, paramsVTK, runtimeLabel=None, BSPExtractButton=None):     
     logging.info('Extracting BSP started')
     runtime = slicer.modules.boneenhancercpp.logic().ImageProcessingConnector(inputVolumeNode, self.BSPVolumeNode, paramsVTK, 'Foroughi2007')
     runtime = str(round(runtime, 3)) 
@@ -203,6 +269,8 @@ class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
     
     self.setBSPLayout(inputVolumeNode)
     self.BSPVolumeNode.Modified()
+    if BSPExtractButton:
+      BSPExtractButton.checked = False
     
     return True
 
@@ -280,10 +348,8 @@ class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
       
     return True
 
-#
-# AlgorithmParams
-#
-
+############################################################ AlgorithmParams
+# Defines parameters for an algorithm through a ctkSliderWidget, a QRadioButton and a QLabel.
 class AlgorithmParams:
   def __init__(self, algo, params):
     self.name = algo[0]
@@ -330,6 +396,7 @@ class AlgorithmParams:
     paramsVtkDoubleArray = numpy_support.numpy_to_vtk(num_array=params, deep=True, array_type=vtk.VTK_DOUBLE)
     return paramsVtkDoubleArray
 
+############################################################ BoneEnhancerPyTest
 class BoneEnhancerPyTest(ScriptedLoadableModuleTest):
   """
   This is the test case for your scripted module.

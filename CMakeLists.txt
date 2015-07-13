@@ -7,7 +7,7 @@ project(BoneEnhancer)
 set(EXTENSION_HOMEPAGE "http://www.example.com/Slicer/Extensions/BoneEnhancer")
 set(EXTENSION_CATEGORY "Filtering")
 set(EXTENSION_CONTRIBUTORS "Mikael Brudfors (UC3M)")
-set(EXTENSION_DESCRIPTION "This is an example of a simple extension")
+set(EXTENSION_DESCRIPTION "Enhancing bone in 2D ultrasound slices")
 set(EXTENSION_ICONURL "http://www.example.com/Slicer/Extensions/BoneEnhancer.png")
 set(EXTENSION_SCREENSHOTURLS "http://www.example.com/Slicer/Extensions/BoneEnhancer/Screenshots/1.png")
 

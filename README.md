@@ -1,16 +1,19 @@
+![Capture.PNG](https://bitbucket.org/repo/LK76Gq/images/1778480745-Capture.PNG)
+
 # BoneEnhancer #
-A 3D Slicer module which enhances bone in images. It is possible to test the module from 3D Slicer pressing *Reload and Test*, which uses a lumbar spine US volume (available in MIDAS).
+A 3D Slicer module which enhances bone in US images. It is possible to test the module from 3D Slicer pressing *Reload and Test*, which uses a lumbar spine US volume (available in MIDAS).
 
-The module uses *OpenMP* and *Intel MKL*. At the moment the path to the *Intel MKL* include directory as well as the libraries used are hardcoded into BoneEnhancerCpp/Logic/CMakeLists.txt. Also,  remember to add the *Intel MKL* dlls to your path: ...\mkl\redist\intel64\mkl, ...\mkl\redist\intel64\compiler.
-
-A free trial of *Intel MKL* can be downloaded from here:
+The module uses *OpenMP* and *Intel MKL*. A free trial of *Intel MKL* can be downloaded from here:
 
 [https://software.intel.com/en-us/intel-mkl/try-buy](https://software.intel.com/en-us/intel-mkl/try-buy)
+
+Also, remember to add the *Intel MKL* dlls to your path: ...\mkl\redist\intel64\mkl, ...\mkl\redist\intel64\compiler.
+
 
 One more thing: the *Intel MKL* code uses double data at this moment.
 ## Available Algorithms ##
 This section gives details about the algorithms currently available.
-### Foroughi ###
+### Foroughi w. minor mods ###
 Foroughi, P., et al. (2007) Ultrasound bone segmentation using dynamic programming. IEEE Ultrason Symp 13(4):2523–2526 (with some modifications).
 
 **Parameters:**
@@ -21,7 +24,7 @@ Foroughi, P., et al. (2007) Ultrasound bone segmentation using dynamic programmi
 
 * **shadowSigma** - Standard deviation of the Gaussian weighting function which models the transition of high intensity pixels close to bone surface to the dark pixels deeper under the bone.
 
-* **shadowVSIntensity** - Controlls the ratio between the shadow map and the reflection number.
+* **shadowVSIntensity** - Controls the ratio between the shadow map and the reflection number.
 
 * **smoothingSigma** - Defines the size of the Gaussian kernel used for blurring.
 

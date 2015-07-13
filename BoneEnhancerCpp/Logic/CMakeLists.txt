@@ -4,8 +4,16 @@ set(KIT ${PROJECT_NAME})
 
 set(${KIT}_EXPORT_DIRECTIVE "VTK_SLICER_${MODULE_NAME_UPPER}_MODULE_LOGIC_EXPORT")
 
+find_path(IntelComposerXEdir IntelComposerXE
+  PATHS "C:/Program Files (x86)/Intel/Composer XE 2015/"
+  DOC "A path to Intel Composer XE" )
+
+if (NOT IntelComposerXEdir)
+  message( FATAL_ERROR "A path to Intel Composer XE is invalid." )
+endif()
+
 set(${KIT}_INCLUDE_DIRECTORIES
-  "H:/bin/mkl/mkl/include"
+  "${IntelComposerXEdir}/mkl/include"
   )
 
 set(${KIT}_SRCS
@@ -14,10 +22,10 @@ set(${KIT}_SRCS
   )
 
 set(${KIT}_TARGET_LIBRARIES
-  "H:/bin/mkl/mkl/lib/intel64/mkl_intel_lp64_dll.lib"
-  "H:/bin/mkl/mkl/lib/intel64/mkl_intel_thread_dll.lib"
-  "H:/bin/mkl/mkl/lib/intel64/mkl_core_dll.lib"
-  "H:/bin/mkl/compiler/lib/intel64/libiomp5md.lib"
+  "${IntelComposerXEdir}/mkl/lib/intel64/mkl_intel_lp64_dll.lib"
+  "${IntelComposerXEdir}/mkl/lib/intel64/mkl_intel_thread_dll.lib"
+  "${IntelComposerXEdir}/mkl/lib/intel64/mkl_core_dll.lib"
+  "${IntelComposerXEdir}/compiler/lib/intel64/libiomp5md.lib"
   )
 
 #-----------------------------------------------------------------------------
