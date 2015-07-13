@@ -34,10 +34,81 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
   """Uses ScriptedLoadableModuleWidget base class, available at:
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
   """
-  
+ 
   def setup(self):
     ScriptedLoadableModuleWidget.setup(self)
+    
+    ############################################################ Define algorithms
+    self.foroughi2007 = AlgorithmParams(("Foroughi2007 (with minor modifications)", "Runs Foroughi's algorithm on the input US volume.", "Extract Bone Features"),
+              {"Smoothing Sigma" : (1, 1, 1, 10, 5.0, "Smoothing Sigma ToolTip"),
+               "Transducer Margin" : (0, 1, 0, 100, 60, "Transducer Margin ToolTip"),
+               "Shadow Sigma" : (1, 1, 1, 10, 6.0, "Shadow Sigma ToolTip"),
+               "Bone Threshold" : (1, 0.1, 0, 1, 0.4, "Bone Threshold ToolTip"),
+               "Blurred vs. BLoG" : (0, 1, 1, 10, 3, "Blurred vs. BLoG ToolTip"),
+               "Shadow vs. Intensity" : (0, 1, 1, 10, 5, "Shadow vs. Intensity ToolTip")})
 
+    ############################################################ BoneEnhancer
+    boneEnhancerCollapsibleButton = ctk.ctkCollapsibleButton()
+    boneEnhancerCollapsibleButton.text = "BoneEnhancer"
+    self.layout.addWidget(boneEnhancerCollapsibleButton)
+    boneEnhancerFormLayout = qt.QFormLayout(boneEnhancerCollapsibleButton)
+
+    self.inputVolumeSelector = slicer.qMRMLNodeComboBox()
+    self.inputVolumeSelector.nodeTypes = ( ("vtkMRMLScalarVolumeNode"), "" )
+    self.inputVolumeSelector.addAttribute( "vtkMRMLScalarVolumeNode", "LabelMap", 0 )
+    self.inputVolumeSelector.selectNodeUponCreation = True
+    self.inputVolumeSelector.addEnabled = False
+    self.inputVolumeSelector.removeEnabled = False
+    self.inputVolumeSelector.noneEnabled = False
+    self.inputVolumeSelector.showHidden = False
+    self.inputVolumeSelector.showChildNodeTypes = False
+    self.inputVolumeSelector.setMRMLScene( slicer.mrmlScene )
+    self.inputVolumeSelector.setToolTip( "Pick the input to the algorithm." )
+    boneEnhancerFormLayout.addRow("US Input Volume: ", self.inputVolumeSelector)
+
+    # Select algorithm
+    self.algorithmGroupBox = ctk.ctkCollapsibleGroupBox()
+    self.algorithmGroupBox.setTitle("Select Algorithm")
+    algorithmFormLayout = qt.QFormLayout(self.algorithmGroupBox)
+    boneEnhancerFormLayout.addRow(self.algorithmGroupBox)
+
+    algorithmFormLayout.addRow(self.foroughi2007.GetRadioButton())
+    
+    # Parameters
+    self.parametersGroupBox = ctk.ctkCollapsibleGroupBox()
+    self.parametersGroupBox.setTitle("Parameters")
+    parametersFormLayout = qt.QFormLayout(self.parametersGroupBox)
+    boneEnhancerFormLayout.addRow(self.parametersGroupBox)
+             
+    for paramKey in self.foroughi2007.GetParamKeys():
+      parametersFormLayout.addRow(self.foroughi2007.GetLabel(paramKey), self.foroughi2007.GetSlider(paramKey))            
+    # Runtime
+    self.runtimeGroupBox = ctk.ctkCollapsibleGroupBox()
+    self.runtimeGroupBox.setTitle("Runtime")
+    runtimeFormLayout = qt.QFormLayout(self.runtimeGroupBox)
+    boneEnhancerFormLayout.addRow(self.runtimeGroupBox)
+    
+    self.runtimeLabel = qt.QLabel()
+    self.runtimeLabel.setText("... s.")
+    self.runtimeLabel.setWordWrap(True)
+    self.runtimeLabel.setStyleSheet("QLabel { background-color : black; \
+                                           color : #66FF00; \
+                                           height : 60px; \
+                                           border-style: outset; \
+                                           border-width: 5px; \
+                                           border-radius: 10px; \
+                                           font: bold 14px; \
+                                           padding: 0px;\
+                                           font-family : SimSun; \
+                                           qproperty-alignment: AlignCenter}")
+    runtimeFormLayout.addRow(self.runtimeLabel)
+    
+    self.applyButton = qt.QPushButton("Apply")
+    self.applyButton.toolTip = "Run the algorithm."
+    self.applyButton.enabled = False
+    self.applyButton.checkable = True
+    boneEnhancerFormLayout.addRow(self.applyButton)
+    
     ############################################################ Cast To Double
     castToDoubleCollapsibleButton = ctk.ctkCollapsibleButton()
     castToDoubleCollapsibleButton.text = "Cast To Double"
@@ -74,75 +145,10 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
     self.castToDoubleApplyButton = qt.QPushButton("Apply")
     self.castToDoubleApplyButton.enabled = False
     castToDoubleFormLayout.addRow(self.castToDoubleApplyButton)
-    
-    ############################################################ Bone Surface Probability (BSP)
-    BSPCollapsibleButton = ctk.ctkCollapsibleButton()
-    BSPCollapsibleButton.text = "Bone Surface Probability (BSP) [Foroughi2007 w. minor mods]"
-    self.layout.addWidget(BSPCollapsibleButton)
-
-    BSPFormLayout = qt.QFormLayout(BSPCollapsibleButton)
-
-    self.BSPInputSelector = slicer.qMRMLNodeComboBox()
-    self.BSPInputSelector.nodeTypes = ( ("vtkMRMLScalarVolumeNode"), "" )
-    self.BSPInputSelector.addAttribute( "vtkMRMLScalarVolumeNode", "LabelMap", 0 )
-    self.BSPInputSelector.selectNodeUponCreation = True
-    self.BSPInputSelector.addEnabled = False
-    self.BSPInputSelector.removeEnabled = False
-    self.BSPInputSelector.noneEnabled = False
-    self.BSPInputSelector.showHidden = False
-    self.BSPInputSelector.showChildNodeTypes = False
-    self.BSPInputSelector.setMRMLScene( slicer.mrmlScene )
-    self.BSPInputSelector.setToolTip( "Pick the input to the algorithm." )
-    BSPFormLayout.addRow("US Input Volume: ", self.BSPInputSelector)
-
-    # Params
-    self.BSPParamsGroupBox = ctk.ctkCollapsibleGroupBox()
-    self.BSPParamsGroupBox.setTitle("Parameters")
-    BSPParamsFormLayout = qt.QFormLayout(self.BSPParamsGroupBox)
-    BSPFormLayout.addRow(self.BSPParamsGroupBox)
-    
-    # Define Foroughi algorithm parameters
-    self.BSPParams = AlgorithmParams(("Foroughi [1]", "Runs Foroughi's algorithm on the input US volume.", "Extract Bone Features"),
-              {"Smoothing Sigma" : (1, 1, 1, 10, 5.0, "Smoothing Sigma ToolTip"),
-               "Transducer Margin" : (0, 1, 0, 100, 60, "Transducer Margin ToolTip"),
-               "Shadow Sigma" : (1, 1, 1, 10, 6.0, "Shadow Sigma ToolTip"),
-               "Bone Threshold" : (1, 0.1, 0, 1, 0.4, "Bone Threshold ToolTip"),
-               "Blurred vs. BLoG" : (0, 1, 1, 10, 3, "Blurred vs. BLoG ToolTip"),
-               "Shadow vs. Intensity" : (0, 1, 1, 10, 5, "Shadow vs. Intensity ToolTip")})
-            
-    for paramKey in self.BSPParams.GetParamKeys():
-        BSPParamsFormLayout.addRow(self.BSPParams.GetLabel(paramKey), self.BSPParams.GetSlider(paramKey))            
-
-    # Runtime
-    self.runtimeGroupBox = ctk.ctkCollapsibleGroupBox()
-    self.runtimeGroupBox.setTitle("Runtime")
-    runtimeFormLayout = qt.QFormLayout(self.runtimeGroupBox)
-    BSPFormLayout.addRow(self.runtimeGroupBox)
-    
-    self.runtimeLabel = qt.QLabel()
-    self.runtimeLabel.setText("... s.")
-    self.runtimeLabel.setWordWrap(True)
-    self.runtimeLabel.setStyleSheet("QLabel { background-color : black; \
-                                           color : #66FF00; \
-                                           height : 60px; \
-                                           border-style: outset; \
-                                           border-width: 5px; \
-                                           border-radius: 10px; \
-                                           font: bold 14px; \
-                                           padding: 0px;\
-                                           font-family : SimSun; \
-                                           qproperty-alignment: AlignCenter}")
-    runtimeFormLayout.addRow(self.runtimeLabel)
-    
-    self.BSPExtractButton = qt.QPushButton("Extract BSP")
-    self.BSPExtractButton.toolTip = "Run the algorithm."
-    self.BSPExtractButton.enabled = False
-    self.BSPExtractButton.checkable = True
-    BSPFormLayout.addRow(self.BSPExtractButton)
-   
+     
     ############################################################ Connections
-    self.BSPExtractButton.connect('clicked(bool)', self.onBSPExtractButton)
-    self.BSPInputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
+    self.applyButton.connect('clicked(bool)', self.onApplyButton)
+    self.inputVolumeSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
     self.castToDoubleApplyButton.connect('clicked(bool)', self.onCastToDoubleApplyButton)
     self.castToDoubleInputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
     self.castToDoubleOutputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
@@ -155,22 +161,22 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
     pass
 
   def onSelect(self):
-    self.BSPExtractButton.enabled = self.BSPInputSelector.currentNode()
+    self.applyButton.enabled = self.inputVolumeSelector.currentNode()
     self.castToDoubleApplyButton.enabled = self.castToDoubleInputSelector.currentNode() and self.castToDoubleOutputSelector.currentNode()
     
   def onCastToDoubleApplyButton(self):
     boneEnhancerPyLogic = BoneEnhancerPyLogic()
     boneEnhancerPyLogic.castVolumeNodeToDouble(self.castToDoubleInputSelector.currentNode(), self.castToDoubleOutputSelector.currentNode())
   
-  def onBSPExtractButton(self):
+  def onApplyButton(self):
     if not self.boneEnhancerPyLogic:
       self.boneEnhancerPyLogic = BoneEnhancerPyLogic()
     if not self.boneEnhancerPyLogic.BSPVolumeNode:
-      self.boneEnhancerPyLogic.createVolumeNode(self.BSPInputSelector.currentNode(), 'BSP')        
-    if self.BSPInputSelector.currentNode().GetImageData().GetScalarType() is vtk.VTK_DOUBLE:
-      self.boneEnhancerPyLogic.extractBSP(self.BSPInputSelector.currentNode(), self.BSPParams.GetParamsVTK(), self.runtimeLabel, self.BSPExtractButton)
+      self.boneEnhancerPyLogic.createVolumeNode(self.inputVolumeSelector.currentNode(), 'BSP')        
+    if self.inputVolumeSelector.currentNode().GetImageData().GetScalarType() is vtk.VTK_DOUBLE:
+      self.boneEnhancerPyLogic.extractBSP(self.inputVolumeSelector.currentNode(), self.foroughi2007.GetParamsVTK(), self.runtimeLabel, self.applyButton)
     else:
-      self.BSPExtractButton.checked = False
+      self.applyButton.checked = False
       logging.warning('Input image scalar type not double! Please use Cast To Double.')
 
 ############################################################ BoneEnhancerPyLogic
@@ -258,7 +264,7 @@ class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
         
     return True
     
-  def extractBSP(self, inputVolumeNode, paramsVTK, runtimeLabel=None, BSPExtractButton=None):     
+  def extractBSP(self, inputVolumeNode, paramsVTK, runtimeLabel=None, applyButton=None):     
     logging.info('Extracting BSP started')
     runtime = slicer.modules.boneenhancercpp.logic().ImageProcessingConnector(inputVolumeNode, self.BSPVolumeNode, paramsVTK, 'Foroughi2007')
     runtime = str(round(runtime, 3)) 
@@ -269,8 +275,8 @@ class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
     
     self.setBSPLayout(inputVolumeNode)
     self.BSPVolumeNode.Modified()
-    if BSPExtractButton:
-      BSPExtractButton.checked = False
+    if applyButton:
+      applyButton.checked = False
     
     return True
 
