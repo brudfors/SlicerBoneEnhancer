@@ -53,18 +53,18 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
     self.layout.addWidget(boneEnhancerCollapsibleButton)
     boneEnhancerFormLayout = qt.QFormLayout(boneEnhancerCollapsibleButton)
 
-    self.inputVolumeSelector = slicer.qMRMLNodeComboBox()
-    self.inputVolumeSelector.nodeTypes = ( ("vtkMRMLScalarVolumeNode"), "" )
-    self.inputVolumeSelector.addAttribute( "vtkMRMLScalarVolumeNode", "LabelMap", 0 )
-    self.inputVolumeSelector.selectNodeUponCreation = True
-    self.inputVolumeSelector.addEnabled = False
-    self.inputVolumeSelector.removeEnabled = False
-    self.inputVolumeSelector.noneEnabled = False
-    self.inputVolumeSelector.showHidden = False
-    self.inputVolumeSelector.showChildNodeTypes = False
-    self.inputVolumeSelector.setMRMLScene( slicer.mrmlScene )
-    self.inputVolumeSelector.setToolTip( "Pick the input to the algorithm." )
-    boneEnhancerFormLayout.addRow("US Input Volume: ", self.inputVolumeSelector)
+    self.ultrasoundImageSelector = slicer.qMRMLNodeComboBox()
+    self.ultrasoundImageSelector.nodeTypes = ( ("vtkMRMLScalarVolumeNode"), "" )
+    self.ultrasoundImageSelector.addAttribute( "vtkMRMLScalarVolumeNode", "LabelMap", 0 )
+    self.ultrasoundImageSelector.selectNodeUponCreation = True
+    self.ultrasoundImageSelector.addEnabled = False
+    self.ultrasoundImageSelector.removeEnabled = False
+    self.ultrasoundImageSelector.noneEnabled = False
+    self.ultrasoundImageSelector.showHidden = False
+    self.ultrasoundImageSelector.showChildNodeTypes = False
+    self.ultrasoundImageSelector.setMRMLScene( slicer.mrmlScene )
+    self.ultrasoundImageSelector.setToolTip( "Pick the input to the algorithm." )
+    boneEnhancerFormLayout.addRow("Ultrasound Image: ", self.ultrasoundImageSelector)
 
     # Select algorithm
     self.algorithmGroupBox = ctk.ctkCollapsibleGroupBox()
@@ -107,183 +107,57 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
     self.applyButton.toolTip = "Run the algorithm."
     self.applyButton.enabled = False
     self.applyButton.checkable = True
+    self.boneEnhancedImage = None
     boneEnhancerFormLayout.addRow(self.applyButton)
-    
-    ############################################################ Cast To Double
-    castToDoubleCollapsibleButton = ctk.ctkCollapsibleButton()
-    castToDoubleCollapsibleButton.text = "Cast To Double"
-    self.layout.addWidget(castToDoubleCollapsibleButton)
-
-    castToDoubleFormLayout = qt.QFormLayout(castToDoubleCollapsibleButton)
-
-    self.castToDoubleInputSelector = slicer.qMRMLNodeComboBox()
-    self.castToDoubleInputSelector.nodeTypes = ( ("vtkMRMLScalarVolumeNode"), "" )
-    self.castToDoubleInputSelector.addAttribute( "vtkMRMLScalarVolumeNode", "LabelMap", 0 )
-    self.castToDoubleInputSelector.selectNodeUponCreation = True
-    self.castToDoubleInputSelector.addEnabled = False
-    self.castToDoubleInputSelector.removeEnabled = False
-    self.castToDoubleInputSelector.noneEnabled = False
-    self.castToDoubleInputSelector.showHidden = False
-    self.castToDoubleInputSelector.showChildNodeTypes = False
-    self.castToDoubleInputSelector.setMRMLScene( slicer.mrmlScene )
-    castToDoubleFormLayout.addRow("Input Volume: ", self.castToDoubleInputSelector)
-    
-    self.castToDoubleOutputSelector = slicer.qMRMLNodeComboBox()
-    self.castToDoubleOutputSelector.nodeTypes = ( ("vtkMRMLScalarVolumeNode"), "" )
-    self.castToDoubleOutputSelector.addAttribute( "vtkMRMLScalarVolumeNode", "LabelMap", 0 )
-    self.castToDoubleOutputSelector.selectNodeUponCreation = True
-    self.castToDoubleOutputSelector.addEnabled = True
-    self.castToDoubleOutputSelector.editEnabled = False
-    self.castToDoubleOutputSelector.removeEnabled = True
-    self.castToDoubleOutputSelector.renameEnabled = True
-    self.castToDoubleOutputSelector.noneEnabled = False
-    self.castToDoubleOutputSelector.showHidden = False
-    self.castToDoubleOutputSelector.showChildNodeTypes = False
-    self.castToDoubleOutputSelector.setMRMLScene( slicer.mrmlScene )
-    castToDoubleFormLayout.addRow("Double Output Volume: ", self.castToDoubleOutputSelector)
-    
-    self.castToDoubleApplyButton = qt.QPushButton("Apply")
-    self.castToDoubleApplyButton.enabled = False
-    castToDoubleFormLayout.addRow(self.castToDoubleApplyButton)
-     
+       
     ############################################################ Connections
     self.applyButton.connect('clicked(bool)', self.onApplyButton)
-    self.inputVolumeSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
-    self.castToDoubleApplyButton.connect('clicked(bool)', self.onCastToDoubleApplyButton)
-    self.castToDoubleInputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
-    self.castToDoubleOutputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
+    self.ultrasoundImageSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
     
     self.layout.addStretch(1)
     self.onSelect()
-    self.boneEnhancerPyLogic = None
+    self.ModuleLayoutID = -1
     
-  def cleanup(self):
-    pass
-
+    self.setModuleLayout()
+    
   def onSelect(self):
-    self.applyButton.enabled = self.inputVolumeSelector.currentNode()
-    self.castToDoubleApplyButton.enabled = self.castToDoubleInputSelector.currentNode() and self.castToDoubleOutputSelector.currentNode()
-    
-  def onCastToDoubleApplyButton(self):
-    boneEnhancerPyLogic = BoneEnhancerPyLogic()
-    boneEnhancerPyLogic.castVolumeNodeToDouble(self.castToDoubleInputSelector.currentNode(), self.castToDoubleOutputSelector.currentNode())
+    self.applyButton.enabled = self.ultrasoundImageSelector.currentNode()
   
   def onApplyButton(self):
-    if not self.boneEnhancerPyLogic:
-      self.boneEnhancerPyLogic = BoneEnhancerPyLogic()
-    if not self.boneEnhancerPyLogic.BSPVolumeNode:
-      self.boneEnhancerPyLogic.createVolumeNode(self.inputVolumeSelector.currentNode(), 'BSP')        
-    if self.inputVolumeSelector.currentNode().GetImageData().GetScalarType() is vtk.VTK_DOUBLE:
-      self.boneEnhancerPyLogic.extractBSP(self.inputVolumeSelector.currentNode(), self.foroughi2007.GetParamsVTK(), self.runtimeLabel, self.applyButton)
-    else:
-      self.applyButton.checked = False
-      logging.warning('Input image scalar type not double! Please use Cast To Double.')
+    logic = BoneEnhancerPyLogic()
+      
+    if not self.boneEnhancedImage:
+      self.boneEnhancedImage = logic.createBoneEnhancedImage(self.ultrasoundImageSelector.currentNode())  
+      
+    if self.ultrasoundImageSelector.currentNode().GetImageData().GetScalarType() is not vtk.VTK_DOUBLE:
+      logging.warning('Input image scalar type not double! Casting to double.')
+      logic.castVolumeNodeToDouble(self.ultrasoundImageSelector.currentNode())   
+      
+    logic.calculateBoneEnhancedImage(self.ultrasoundImageSelector.currentNode(), self.boneEnhancedImage, self.foroughi2007.GetParamsVTK(), self.runtimeLabel, self.applyButton)
 
-############################################################ BoneEnhancerPyLogic
-class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
-  """This class should implement all the actual
-  computation done by your module.  The interface
-  should be such that other python code can import
-  this class and make use of the functionality without
-  requiring an instance of the Widget.
-  Uses ScriptedLoadableModuleLogic base class, available at:
-  https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
-  """
-
-  def __init__(self):
-    self.BSPVolumeNode = None
-    self.BSPLayoutID = -1
+    self.updateSliceViews(self.ultrasoundImageSelector.currentNode())
     
-  def hasImageData(self, volumeNode):
-    """This is an example logic method that
-    returns true if the passed in volume
-    node has valid image data
-    """
-    if not volumeNode:
-      logging.debug('hasImageData failed: no volume node')
-      return False
-    if volumeNode.GetImageData() == None:
-      logging.debug('hasImageData failed: no image data in volume node')
-      return False
-    return True
-
-  def isValidInputOutputData(self, inputVolumeNode, outputVolumeNode):
-    """Validates if the output is not the same as input
-    """
-    if not inputVolumeNode:
-      logging.debug('isValidInputOutputData failed: no input volume node defined')
-      return False
-    if not outputVolumeNode:
-      logging.debug('isValidInputOutputData failed: no output volume node defined')
-      return False
-    if inputVolumeNode.GetID()==outputVolumeNode.GetID():
-      logging.debug('isValidInputOutputData failed: input and output volume is the same. Create a new volume for output to avoid this error.')
-      return False
-    return True
-
-  def createVolumeNode(self, inputVolumeNode, volumeName):
-    inputImageData = inputVolumeNode.GetImageData()
-    imageSize=inputImageData.GetDimensions()
-    imageSpacing=inputVolumeNode.GetSpacing()
-    imageOrigin=inputVolumeNode.GetOrigin()
-    voxelType=vtk.VTK_DOUBLE 
-    # Create an empty image volume
-    imageData=vtk.vtkImageData()
-    imageData.SetDimensions(imageSize)
-    imageData.AllocateScalars(voxelType, 1)    
-    # Create volume node
-    scene = slicer.mrmlScene
-    volumeNode=slicer.vtkMRMLScalarVolumeNode()
-    volumeNode.SetSpacing(imageSpacing)
-    volumeNode.SetOrigin(imageOrigin)
-    volumeNode.SetAndObserveImageData(imageData)
-    volumeNode.SetName(scene.GenerateUniqueName(volumeName))
-    # Add volume to scene
-    slicer.mrmlScene.AddNode(volumeNode)
-    self.BSPVolumeNode = volumeNode
-    
-    return True
-
-  def castVolumeNodeToDouble(self, inputVolumeNode, outputVolumeNode):
-    inputImageData = inputVolumeNode.GetImageData()
-    imageSpacing = inputVolumeNode.GetSpacing()
-    imageOrigin = inputVolumeNode.GetOrigin()
-    
-    castFilter = vtk.vtkImageCast()
-    castFilter.SetInputData(inputImageData)
-    castFilter.SetOutputScalarTypeToDouble()
-    
-    flipFilter = vtk.vtkImageFlip()
-    flipFilter.SetFilteredAxis(1)
-    flipFilter.SetInputConnection(castFilter.GetOutputPort())
-    flipFilter.Update()
-
-    outputVolumeNode.SetSpacing(imageSpacing)
-    outputVolumeNode.SetOrigin(imageOrigin)    
-    outputVolumeNode.SetAndObserveImageData(flipFilter.GetOutput())
-        
-    return True
-    
-  def extractBSP(self, inputVolumeNode, paramsVTK, runtimeLabel=None, applyButton=None):     
-    logging.info('Extracting BSP started')
-    runtime = slicer.modules.boneenhancercpp.logic().ImageProcessingConnector(inputVolumeNode, self.BSPVolumeNode, paramsVTK, 'Foroughi2007')
-    runtime = str(round(runtime, 3)) 
-    message = runtime + ' s.'
-    if runtimeLabel:
-      runtimeLabel.setText(message)
-    logging.info('Extracting BSP completed (' + message + ')')
-    
-    self.setBSPLayout(inputVolumeNode)
-    self.BSPVolumeNode.Modified()
-    if applyButton:
-      applyButton.checked = False
-    
-    return True
-
-  def setBSPLayout(self, USVolumeNode):
+  def updateSliceViews(self, USVolumeNode):
     layoutManager = slicer.app.layoutManager()
-    if self.BSPLayoutID == -1:
-      BSPLayout = ("<layout type=\"vertical\">"
+    
+    # Update bone enhanced image
+    for name in ['RedBone', 'YellowBone', 'GreenBone']:      
+      sliceWidget = layoutManager.sliceWidget(name)    
+      sliceLogic = sliceWidget.sliceLogic()
+      sliceLogic.GetSliceCompositeNode().SetBackgroundVolumeID(self.boneEnhancedImage.GetID()) 
+      sliceLogic.FitSliceToAll() 
+    
+    # Update ultrasound image
+    for name in ['Red', 'Yellow', 'Green']:      
+      sliceWidget = layoutManager.sliceWidget(name)    
+      sliceLogic = sliceWidget.sliceLogic()
+      sliceLogic.GetSliceCompositeNode().SetBackgroundVolumeID(USVolumeNode.GetID()) 
+      sliceLogic.FitSliceToAll() 
+      
+  def setModuleLayout(self):
+    layoutManager = slicer.app.layoutManager()
+    if self.ModuleLayoutID == -1:
+      ModuleLayout = ("<layout type=\"vertical\">"
                    " <item>"
                    "  <layout type=\"horizontal\">"
                    "   <item>"
@@ -312,21 +186,21 @@ class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
                    " <item>"
                    "  <layout type=\"horizontal\">"
                    "   <item>"
-                   "    <view class=\"vtkMRMLSliceNode\" singletontag=\"RedBSP\">"
+                   "    <view class=\"vtkMRMLSliceNode\" singletontag=\"RedBone\">"
                    "     <property name=\"orientation\" action=\"default\">Axial</property>"
                    "     <property name=\"viewlabel\" action=\"default\">R</property>"
                    "     <property name=\"viewcolor\" action=\"default\">#F34A33</property>"
                    "    </view>"
                    "   </item>"
                    "   <item>"
-                   "    <view class=\"vtkMRMLSliceNode\" singletontag=\"YellowBSP\">"
+                   "    <view class=\"vtkMRMLSliceNode\" singletontag=\"YellowBone\">"
                    "     <property name=\"orientation\" action=\"default\">Sagittal</property>"
                    "     <property name=\"viewlabel\" action=\"default\">Y</property>"
                    "     <property name=\"viewcolor\" action=\"default\">#EDD54C</property>"
                    "    </view>"
                    "   </item>"      
                    "   <item>"
-                   "    <view class=\"vtkMRMLSliceNode\" singletontag=\"GreenBSP\">"
+                   "    <view class=\"vtkMRMLSliceNode\" singletontag=\"GreenBone\">"
                    "     <property name=\"orientation\" action=\"default\">Coronal</property>"
                    "     <property name=\"viewlabel\" action=\"default\">G</property>"
                    "     <property name=\"viewcolor\" action=\"default\">#6EB04B</property>"
@@ -335,25 +209,73 @@ class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
                    "  </layout>"
                    " </item>"                
                    " </layout>")  
-      self.BSPLayoutID = 501
-      layoutManager.layoutLogic().GetLayoutNode().AddLayoutDescription(self.BSPLayoutID, BSPLayout)
+      self.ModuleLayoutID = 501
+      layoutManager.layoutLogic().GetLayoutNode().AddLayoutDescription(self.ModuleLayoutID, ModuleLayout)
       
-    layoutManager.setLayout(self.BSPLayoutID)
-    
-    for name in ['RedBSP', 'YellowBSP', 'GreenBSP']:      
-      sliceWidget = slicer.app.layoutManager().sliceWidget(name)    
-      sliceLogic = sliceWidget.sliceLogic()
-      sliceLogic.GetSliceCompositeNode().SetBackgroundVolumeID(self.BSPVolumeNode.GetID()) 
-      sliceLogic.FitSliceToAll() 
-    
-    for name in ['Red', 'Yellow', 'Green']:      
-      sliceWidget = slicer.app.layoutManager().sliceWidget(name)    
-      sliceLogic = sliceWidget.sliceLogic()
-      sliceLogic.GetSliceCompositeNode().SetBackgroundVolumeID(USVolumeNode.GetID()) 
-      sliceLogic.FitSliceToAll() 
-      
-    return True
+    layoutManager.setLayout(self.ModuleLayoutID)
 
+############################################################ BoneEnhancerPyLogic
+class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
+  """This class should implement all the actual
+  computation done by your module.  The interface
+  should be such that other python code can import
+  this class and make use of the functionality without
+  requiring an instance of the Widget.
+  Uses ScriptedLoadableModuleLogic base class, available at:
+  https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
+  """
+  
+  def calculateBoneEnhancedImage(self, inputVolumeNode, boneEnhancedImage, paramsVTK, runtimeLabel=None, applyButton=None):     
+    logging.info('Extracting BSP started')
+    runtime = slicer.modules.boneenhancercpp.logic().ImageProcessingConnector(inputVolumeNode, boneEnhancedImage, paramsVTK, 'Foroughi2007')
+    runtime = str(round(runtime, 3)) 
+    message = runtime + ' s.'
+    if runtimeLabel:
+      runtimeLabel.setText(message)
+    logging.info('Extracting BSP completed (' + message + ')')
+    
+    boneEnhancedImage.Modified()
+    if applyButton:
+      applyButton.checked = False
+    
+    return True
+    
+  def createBoneEnhancedImage(self, inputVolumeNode):
+    inputImageData = inputVolumeNode.GetImageData()
+    imageSize=inputImageData.GetDimensions()
+    imageSpacing=inputVolumeNode.GetSpacing()
+    imageOrigin=inputVolumeNode.GetOrigin()
+    voxelType=vtk.VTK_DOUBLE 
+    # Create an empty image volume
+    imageData=vtk.vtkImageData()
+    imageData.SetDimensions(imageSize)
+    imageData.AllocateScalars(voxelType, 1)    
+    # Create volume node
+    scene = slicer.mrmlScene
+    volumeNode=slicer.vtkMRMLScalarVolumeNode()
+    volumeNode.SetSpacing(imageSpacing)
+    volumeNode.SetOrigin(imageOrigin)
+    volumeNode.SetAndObserveImageData(imageData)
+    volumeNode.SetName(scene.GenerateUniqueName('BoneEnhancedImage'))
+    # Add volume to scene
+    slicer.mrmlScene.AddNode(volumeNode)
+    
+    return volumeNode
+
+  def castVolumeNodeToDouble(self, volumeNode):
+    castFilter = vtk.vtkImageCast()
+    castFilter.SetInputData(inputImageData)
+    castFilter.SetOutputScalarTypeToDouble()
+    
+    flipFilter = vtk.vtkImageFlip()
+    flipFilter.SetFilteredAxis(1)
+    flipFilter.SetInputConnection(castFilter.GetOutputPort())
+    flipFilter.Update()
+ 
+    volumeNode.SetAndObserveImageData(flipFilter.GetOutput())
+        
+    return True
+    
 ############################################################ AlgorithmParams
 # Defines parameters for an algorithm through a ctkSliderWidget, a QRadioButton and a QLabel.
 class AlgorithmParams:
