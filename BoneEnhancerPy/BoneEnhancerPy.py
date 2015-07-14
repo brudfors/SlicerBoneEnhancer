@@ -305,20 +305,26 @@ class AlgorithmParams:
     self.CreateSliders()
     self.CreateLabels()
     self.createSlidersWidget()
+    
   def createSlidersWidget(self):
     self.slidersWidget = qt.QWidget()
     self.slidersFormLayout = qt.QFormLayout(self.slidersWidget)
     for paramKey in self.paramKeys:
       self.slidersFormLayout.addRow(self.GetLabel(paramKey), self.GetSlider(paramKey))        
+      
   def getSliderWidget(self):
     return self.slidersWidget
+    
   def getName(self):
     return self.name
+    
   def CreateRadioButton(self):
     self.radioButton = qt.QRadioButton()
     self.radioButton.text = self.name
+    
   def GetRadioButton(self):
     return self.radioButton
+    
   def CreateSliders(self):
     self.sliders = {}
     for param in self.params:
@@ -329,17 +335,22 @@ class AlgorithmParams:
       self.sliders[param].maximum = self.params[param][3]
       self.sliders[param].value = self.params[param][4]
       self.sliders[param].setToolTip(self.params[param][5])
+      
   def GetSlider(self, param):
     return self.sliders[param]
+    
   def CreateLabels(self):
     self.labels = {}
     for param in self.params:
       self.labels[param] = qt.QLabel()
       self.labels[param].setText(param + ':') 
+      
   def GetLabel(self, param):
     return self.labels[param]
+    
   def GetParamKeys(self):
     return self.paramKeys
+    
   def GetParamsVTK(self):
     params = []
     for param in self.paramKeys:
