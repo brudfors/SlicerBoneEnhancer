@@ -10,9 +10,6 @@ from vtk.util import numpy_support
 #
 
 class BoneEnhancerPy(ScriptedLoadableModule):
-  """Uses ScriptedLoadableModule base class, available at:
-  https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
-  """
 
   def __init__(self, parent):
     ScriptedLoadableModule.__init__(self, parent)
@@ -107,7 +104,6 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
     self.applyButton.toolTip = "Run the algorithm."
     self.applyButton.enabled = False
     self.applyButton.checkable = True
-    self.boneEnhancedImage = None
     boneEnhancerFormLayout.addRow(self.applyButton)
        
     ############################################################ Connections
@@ -125,26 +121,27 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
   
   def onApplyButton(self):
     logic = BoneEnhancerPyLogic()
-      
-    if not self.boneEnhancedImage:
-      self.boneEnhancedImage = logic.createBoneEnhancedImage(self.ultrasoundImageSelector.currentNode())  
+    
+    boneEnhancedImage = slicer.util.getNode('BoneEnhancedImage')    
+    if not boneEnhancedImage:
+      boneEnhancedImage = logic.createVolumeNode(self.ultrasoundImageSelector.currentNode(), 'BoneEnhancedImage')  
       
     if self.ultrasoundImageSelector.currentNode().GetImageData().GetScalarType() is not vtk.VTK_DOUBLE:
       logging.warning('Input image scalar type not double! Casting to double.')
       logic.castVolumeNodeToDouble(self.ultrasoundImageSelector.currentNode())   
       
-    logic.calculateBoneEnhancedImage(self.ultrasoundImageSelector.currentNode(), self.boneEnhancedImage, self.foroughi2007.GetParamsVTK(), self.runtimeLabel, self.applyButton)
+    logic.calculateBoneEnhancedImage(self.ultrasoundImageSelector.currentNode(), boneEnhancedImage, self.foroughi2007.GetParamsVTK(), self.runtimeLabel, self.applyButton)
 
-    self.updateSliceViews(self.ultrasoundImageSelector.currentNode())
+    self.updateSliceViews(boneEnhancedImage, self.ultrasoundImageSelector.currentNode())
     
-  def updateSliceViews(self, USVolumeNode):
+  def updateSliceViews(self, boneEnhancedImage, USVolumeNode):
     layoutManager = slicer.app.layoutManager()
     
     # Update bone enhanced image
     for name in ['RedBone', 'YellowBone', 'GreenBone']:      
       sliceWidget = layoutManager.sliceWidget(name)    
       sliceLogic = sliceWidget.sliceLogic()
-      sliceLogic.GetSliceCompositeNode().SetBackgroundVolumeID(self.boneEnhancedImage.GetID()) 
+      sliceLogic.GetSliceCompositeNode().SetBackgroundVolumeID(boneEnhancedImage.GetID()) 
       sliceLogic.FitSliceToAll() 
     
     # Update ultrasound image
@@ -216,15 +213,7 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
 
 ############################################################ BoneEnhancerPyLogic
 class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
-  """This class should implement all the actual
-  computation done by your module.  The interface
-  should be such that other python code can import
-  this class and make use of the functionality without
-  requiring an instance of the Widget.
-  Uses ScriptedLoadableModuleLogic base class, available at:
-  https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
-  """
-  
+
   def calculateBoneEnhancedImage(self, inputVolumeNode, boneEnhancedImage, paramsVTK, runtimeLabel=None, applyButton=None):     
     logging.info('Extracting BSP started')
     runtime = slicer.modules.boneenhancercpp.logic().ImageProcessingConnector(inputVolumeNode, boneEnhancedImage, paramsVTK, 'Foroughi2007')
@@ -240,7 +229,7 @@ class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
     
     return True
     
-  def createBoneEnhancedImage(self, inputVolumeNode):
+  def createVolumeNode(self, inputVolumeNode, name):
     inputImageData = inputVolumeNode.GetImageData()
     imageSize=inputImageData.GetDimensions()
     imageSpacing=inputVolumeNode.GetSpacing()
@@ -256,7 +245,7 @@ class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
     volumeNode.SetSpacing(imageSpacing)
     volumeNode.SetOrigin(imageOrigin)
     volumeNode.SetAndObserveImageData(imageData)
-    volumeNode.SetName(scene.GenerateUniqueName('BoneEnhancedImage'))
+    volumeNode.SetName(scene.GenerateUniqueName(name))
     # Add volume to scene
     slicer.mrmlScene.AddNode(volumeNode)
     
@@ -264,21 +253,18 @@ class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
 
   def castVolumeNodeToDouble(self, volumeNode):
     castFilter = vtk.vtkImageCast()
-    castFilter.SetInputData(inputImageData)
+    castFilter.SetInputData(volumeNode.GetImageData())
     castFilter.SetOutputScalarTypeToDouble()
+    castFilter.Update()
     
-    flipFilter = vtk.vtkImageFlip()
-    flipFilter.SetFilteredAxis(1)
-    flipFilter.SetInputConnection(castFilter.GetOutputPort())
-    flipFilter.Update()
- 
-    volumeNode.SetAndObserveImageData(flipFilter.GetOutput())
+    volumeNode.SetAndObserveImageData(castFilter.GetOutput())
         
     return True
     
 ############################################################ AlgorithmParams
 # Defines parameters for an algorithm through a ctkSliderWidget, a QRadioButton and a QLabel.
 class AlgorithmParams:
+
   def __init__(self, algo, params):
     self.name = algo[0]
     self.paramKeys = sorted(params.keys(), key=str.lower) # Sort keys alphabetically
@@ -326,11 +312,6 @@ class AlgorithmParams:
 
 ############################################################ BoneEnhancerPyTest
 class BoneEnhancerPyTest(ScriptedLoadableModuleTest):
-  """
-  This is the test case for your scripted module.
-  Uses ScriptedLoadableModuleTest base class, available at:
-  https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
-  """
 
   def setUp(self):
     slicer.mrmlScene.Clear(0)
@@ -371,6 +352,6 @@ class BoneEnhancerPyTest(ScriptedLoadableModuleTest):
                "Shadow vs. Intensity" : (0, 1, 1, 10, 5, "Shadow vs. Intensity ToolTip")})
                
     logic = BoneEnhancerPyLogic()
-    self.assertTrue(logic.createVolumeNode(volumeNode, 'BSP'))    
-    self.assertTrue(logic.extractBSP(volumeNode, params.GetParamsVTK()))
+    self.assertTrue(logic.createVolumeNode(volumeNode, 'BoneEnhancedImage'))    
+    self.assertTrue(logic.calculateBoneEnhancedImage(volumeNode, slicer.util.getNode('BoneEnhancedImage'), params.GetParamsVTK()))
     self.delayDisplay('Testing BSP passed!')
