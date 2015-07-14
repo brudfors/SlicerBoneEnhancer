@@ -35,8 +35,13 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
   def setup(self):
     ScriptedLoadableModuleWidget.setup(self)
     
-    ############################################################ Define algorithms
-    self.foroughi2007 = AlgorithmParams(("Foroughi2007 (with minor modifications)", "Runs Foroughi's algorithm on the input US volume.", "Extract Bone Features"),
+    ############################################################ Define algorithms    
+    self.example = AlgorithmParams("Example Algorithm",
+              {"1st Parameter" : (1, 1, 1, 1, 0.5, "1st parameter toolTip"),
+               "2nd Parameter" : (0, 1, 0, 10, 5, "2nd parameter toolTip"),
+               "3rd Parameter" : (1, 1, 1, 100, 50, "3rd parameter toolTip")})
+               
+    self.foroughi2007 = AlgorithmParams("Foroughi2007 (with minor modifications)",
               {"Smoothing Sigma" : (1, 1, 1, 10, 5.0, "Smoothing Sigma ToolTip"),
                "Transducer Margin" : (0, 1, 0, 100, 60, "Transducer Margin ToolTip"),
                "Shadow Sigma" : (1, 1, 1, 10, 6.0, "Shadow Sigma ToolTip"),
@@ -44,6 +49,11 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
                "Blurred vs. BLoG" : (0, 1, 1, 10, 3, "Blurred vs. BLoG ToolTip"),
                "Shadow vs. Intensity" : (0, 1, 1, 10, 5, "Shadow vs. Intensity ToolTip")})
 
+    self.algorithms = (self.example, self.foroughi2007)
+    
+    # Set default algorithm
+    self.defaultAlgorithm = self.foroughi2007
+    
     ############################################################ BoneEnhancer
     boneEnhancerCollapsibleButton = ctk.ctkCollapsibleButton()
     boneEnhancerCollapsibleButton.text = "BoneEnhancer"
@@ -69,16 +79,19 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
     algorithmFormLayout = qt.QFormLayout(self.algorithmGroupBox)
     boneEnhancerFormLayout.addRow(self.algorithmGroupBox)
 
-    algorithmFormLayout.addRow(self.foroughi2007.GetRadioButton())
-    
+    for algorithm in self.algorithms:     
+      algorithmFormLayout.addRow(algorithm.GetRadioButton())
+      algorithm.GetRadioButton().connect("toggled(bool)", self.onRadioButtonPressed)
+      
     # Parameters
     self.parametersGroupBox = ctk.ctkCollapsibleGroupBox()
     self.parametersGroupBox.setTitle("Parameters")
-    parametersFormLayout = qt.QFormLayout(self.parametersGroupBox)
+    self.parametersFormLayout = qt.QFormLayout(self.parametersGroupBox)
     boneEnhancerFormLayout.addRow(self.parametersGroupBox)
-             
-    for paramKey in self.foroughi2007.GetParamKeys():
-      parametersFormLayout.addRow(self.foroughi2007.GetLabel(paramKey), self.foroughi2007.GetSlider(paramKey))            
+    
+    for algorithm in self.algorithms:     
+      self.parametersFormLayout.addWidget(algorithm.getSliderWidget())
+                  
     # Runtime
     self.runtimeGroupBox = ctk.ctkCollapsibleGroupBox()
     self.runtimeGroupBox.setTitle("Runtime")
@@ -112,13 +125,31 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
     
     self.layout.addStretch(1)
     self.onSelect()
-    self.ModuleLayoutID = -1
+    self.defaultAlgorithm.GetRadioButton().checked = True
     
+    self.ModuleLayoutID = -1    
     self.setModuleLayout()
-    
+  
+  def onRadioButtonPressed(self): 
+    for algorithm in self.algorithms:     
+      if algorithm.GetRadioButton().checked:
+        algorithm.getSliderWidget().show()
+      else:      
+        algorithm.getSliderWidget().hide()
+  
+  def getCheckedAlgorithmParameters(self):
+    for algorithm in self.algorithms:     
+      if algorithm.GetRadioButton().checked:
+        return algorithm.GetParamsVTK()
+
+  def getCheckedAlgorithmName(self):
+    for algorithm in self.algorithms:     
+      if algorithm.GetRadioButton().checked:
+        return algorithm.getName()
+        
   def onSelect(self):
     self.applyButton.enabled = self.ultrasoundImageSelector.currentNode()
-  
+    
   def onApplyButton(self):
     logic = BoneEnhancerPyLogic()
     
@@ -127,10 +158,10 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
       boneEnhancedImage = logic.createVolumeNode(self.ultrasoundImageSelector.currentNode(), 'BoneEnhancedImage')  
       
     if self.ultrasoundImageSelector.currentNode().GetImageData().GetScalarType() is not vtk.VTK_DOUBLE:
-      logging.warning('Input image scalar type not double! Casting to double.')
+      logging.info('Input image scalar type not double! Casting to double.')
       logic.castVolumeNodeToDouble(self.ultrasoundImageSelector.currentNode())   
       
-    logic.calculateBoneEnhancedImage(self.ultrasoundImageSelector.currentNode(), boneEnhancedImage, self.foroughi2007.GetParamsVTK(), self.runtimeLabel, self.applyButton)
+    logic.calculateBoneEnhancedImage(self.ultrasoundImageSelector.currentNode(), boneEnhancedImage, self.getCheckedAlgorithmParameters(), self.getCheckedAlgorithmName(), self.runtimeLabel, self.applyButton)
 
     self.updateSliceViews(boneEnhancedImage, self.ultrasoundImageSelector.currentNode())
     
@@ -214,9 +245,10 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
 ############################################################ BoneEnhancerPyLogic
 class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
 
-  def calculateBoneEnhancedImage(self, inputVolumeNode, boneEnhancedImage, paramsVTK, runtimeLabel=None, applyButton=None):     
+  # IMPORTANT: paramsVTK given to the ImageProcessingConnector are sorted alphabetically. 
+  def calculateBoneEnhancedImage(self, inputVolumeNode, boneEnhancedImage, paramsVTK, name, runtimeLabel=None, applyButton=None):     
     logging.info('Extracting BSP started')
-    runtime = slicer.modules.boneenhancercpp.logic().ImageProcessingConnector(inputVolumeNode, boneEnhancedImage, paramsVTK, 'Foroughi2007')
+    runtime = slicer.modules.boneenhancercpp.logic().ImageProcessingConnector(inputVolumeNode, boneEnhancedImage, paramsVTK, name)
     runtime = str(round(runtime, 3)) 
     message = runtime + ' s.'
     if runtimeLabel:
@@ -265,40 +297,45 @@ class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
 # Defines parameters for an algorithm through a ctkSliderWidget, a QRadioButton and a QLabel.
 class AlgorithmParams:
 
-  def __init__(self, algo, params):
-    self.name = algo[0]
+  def __init__(self, name, params):
+    self.name = name
+    self.params = params
     self.paramKeys = sorted(params.keys(), key=str.lower) # Sort keys alphabetically
-    self.CreateRadioButton(algo[1])    
-    self.runPushButtonText = algo[2]
-    self.CreateSliders(params)
-    self.CreateLabels(params)
-  def CreateRadioButton(self, toolTip):
+    self.CreateRadioButton()    
+    self.CreateSliders()
+    self.CreateLabels()
+    self.createSlidersWidget()
+  def createSlidersWidget(self):
+    self.slidersWidget = qt.QWidget()
+    self.slidersFormLayout = qt.QFormLayout(self.slidersWidget)
+    for paramKey in self.paramKeys:
+      self.slidersFormLayout.addRow(self.GetLabel(paramKey), self.GetSlider(paramKey))        
+  def getSliderWidget(self):
+    return self.slidersWidget
+  def getName(self):
+    return self.name
+  def CreateRadioButton(self):
     self.radioButton = qt.QRadioButton()
     self.radioButton.text = self.name
-    self.radioButton.setToolTip(toolTip)
-  def GetRunPushButtonText(self):
-    return self.runPushButtonText
   def GetRadioButton(self):
     return self.radioButton
-  def CreateSliders(self, params):
+  def CreateSliders(self):
     self.sliders = {}
-    for param in params:
+    for param in self.params:
       self.sliders[param] = ctk.ctkSliderWidget()
-      self.sliders[param].setDecimals(params[param][0])
-      self.sliders[param].singleStep = params[param][1]
-      self.sliders[param].minimum =  params[param][2]
-      self.sliders[param].maximum = params[param][3]
-      self.sliders[param].value = params[param][4]
-      self.sliders[param].setToolTip(params[param][5])
+      self.sliders[param].setDecimals(self.params[param][0])
+      self.sliders[param].singleStep = self.params[param][1]
+      self.sliders[param].minimum =  self.params[param][2]
+      self.sliders[param].maximum = self.params[param][3]
+      self.sliders[param].value = self.params[param][4]
+      self.sliders[param].setToolTip(self.params[param][5])
   def GetSlider(self, param):
     return self.sliders[param]
-  def GetSliderValue(self, param):
-    return float(self.sliders[param].value) # Return a float for compatibility with, e.g. C++
-  def CreateLabels(self, params):
+  def CreateLabels(self):
     self.labels = {}
-    for param in params:
+    for param in self.params:
       self.labels[param] = qt.QLabel()
-      self.labels[param].setText(param) 
+      self.labels[param].setText(param + ':') 
   def GetLabel(self, param):
     return self.labels[param]
   def GetParamKeys(self):
@@ -343,7 +380,7 @@ class BoneEnhancerPyTest(ScriptedLoadableModuleTest):
     self.delayDisplay('Finished with download and loading')
     volumeNode = slicer.util.getNode(pattern="3DUS_Lumbar")
  
-    params = AlgorithmParams(("Foroughi [1]", "Runs Foroughi's algorithm on the input US volume.", "Extract Bone Features"),
+    params = AlgorithmParams("Foroughi2007 (with minor modifications)",
               {"Smoothing Sigma" : (1, 1, 1, 10, 3, "Smoothing Sigma ToolTip"),
                "Transducer Margin" : (0, 1, 0, 100, 15, "Transducer Margin ToolTip"),
                "Shadow Sigma" : (1, 1, 1, 10, 2, "Shadow Sigma ToolTip"),
@@ -353,5 +390,5 @@ class BoneEnhancerPyTest(ScriptedLoadableModuleTest):
                
     logic = BoneEnhancerPyLogic()
     self.assertTrue(logic.createVolumeNode(volumeNode, 'BoneEnhancedImage'))    
-    self.assertTrue(logic.calculateBoneEnhancedImage(volumeNode, slicer.util.getNode('BoneEnhancedImage'), params.GetParamsVTK()))
+    self.assertTrue(logic.calculateBoneEnhancedImage(volumeNode, slicer.util.getNode('BoneEnhancedImage'), params.GetParamsVTK(), 'Foroughi2007 (with minor modifications)'))
     self.delayDisplay('Testing BSP passed!')

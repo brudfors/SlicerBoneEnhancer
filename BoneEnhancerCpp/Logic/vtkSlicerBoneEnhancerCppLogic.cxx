@@ -108,7 +108,7 @@ float vtkSlicerBoneEnhancerCppLogic
   int nz = dims[2];
 
   float runtime = 0.0;
-  if (algorithmName == "Foroughi2007")
+  if (algorithmName == "Foroughi2007 (with minor modifications)")
   {
     // Define necessary parameters
     int blurredVSBLoG = params->GetValue(0);
