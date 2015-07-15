@@ -123,32 +123,32 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
     self.applyButton.connect('clicked(bool)', self.onApplyButton)
     self.ultrasoundImageSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
     
-    self.layout.addStretch(1)
-    self.onSelect()
+    self.layout.addStretch(1)    
     self.defaultAlgorithm.GetRadioButton().checked = True
+    self.onSelect()
     
     self.ModuleLayoutID = -1    
     self.setModuleLayout()
   
+  def getCheckedAlgorithm(self):
+    for algorithm in self.algorithms:     
+      if algorithm.GetRadioButton().checked:
+        return algorithm
+  
   def onRadioButtonPressed(self): 
     for algorithm in self.algorithms:     
       if algorithm.GetRadioButton().checked:
-        algorithm.getSliderWidget().show()
+        algorithm.getSliderWidget().show()               
+        if algorithm.getName() == 'Example Algorithm':
+          print algorithm.getName()
+          self.applyButton.enabled = False
+        elif self.ultrasoundImageSelector.currentNode():
+          self.applyButton.enabled = True
       else:      
         algorithm.getSliderWidget().hide()
-  
-  def getCheckedAlgorithmParameters(self):
-    for algorithm in self.algorithms:     
-      if algorithm.GetRadioButton().checked:
-        return algorithm.GetParamsVTK()
-
-  def getCheckedAlgorithmName(self):
-    for algorithm in self.algorithms:     
-      if algorithm.GetRadioButton().checked:
-        return algorithm.getName()
         
   def onSelect(self):
-    self.applyButton.enabled = self.ultrasoundImageSelector.currentNode()
+    self.applyButton.enabled = self.ultrasoundImageSelector.currentNode() and (self.getCheckedAlgorithm().getName() != 'Example Algorithm')
     
   def onApplyButton(self):
     logic = BoneEnhancerPyLogic()
@@ -161,7 +161,7 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
       logging.info('Input image scalar type not double! Casting to double.')
       logic.castVolumeNodeToDouble(self.ultrasoundImageSelector.currentNode())   
       
-    logic.calculateBoneEnhancedImage(self.ultrasoundImageSelector.currentNode(), boneEnhancedImage, self.getCheckedAlgorithmParameters(), self.getCheckedAlgorithmName(), self.runtimeLabel, self.applyButton)
+    logic.calculateBoneEnhancedImage(self.ultrasoundImageSelector.currentNode(), boneEnhancedImage, self.getCheckedAlgorithm().GetParamsVTK(), self.getCheckedAlgorithm().getName(), self.runtimeLabel, self.applyButton)
 
     self.updateSliceViews(boneEnhancedImage, self.ultrasoundImageSelector.currentNode())
     
