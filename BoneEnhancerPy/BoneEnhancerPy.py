@@ -61,7 +61,7 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
     boneEnhancerFormLayout = qt.QFormLayout(boneEnhancerCollapsibleButton)
 
     self.ultrasoundImageSelector = slicer.qMRMLNodeComboBox()
-    self.ultrasoundImageSelector.nodeTypes = ( ("vtkMRMLScalarVolumeNode"), "" )
+    self.ultrasoundImageSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
     self.ultrasoundImageSelector.addAttribute( "vtkMRMLScalarVolumeNode", "LabelMap", 0 )
     self.ultrasoundImageSelector.selectNodeUponCreation = True
     self.ultrasoundImageSelector.addEnabled = False
