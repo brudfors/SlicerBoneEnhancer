@@ -43,7 +43,7 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
                
     self.foroughi2007 = AlgorithmParams("Foroughi2007 (with minor modifications)",
               {"Smoothing Sigma" : (1, 1, 1, 10, 5.0, "Smoothing Sigma ToolTip"),
-               "Transducer Margin" : (0, 1, 0, 100, 60, "Transducer Margin ToolTip"),
+               "Transducer Margin" : (0, 1, 0, 300, 60, "Transducer Margin ToolTip"),
                "Shadow Sigma" : (1, 1, 1, 10, 6.0, "Shadow Sigma ToolTip"),
                "Bone Threshold" : (1, 0.1, 0, 1, 0.4, "Bone Threshold ToolTip"),
                "Blurred vs. BLoG" : (0, 1, 1, 10, 3, "Blurred vs. BLoG ToolTip"),
@@ -393,7 +393,7 @@ class BoneEnhancerPyTest(ScriptedLoadableModuleTest):
  
     params = AlgorithmParams("Foroughi2007 (with minor modifications)",
               {"Smoothing Sigma" : (1, 1, 1, 10, 3, "Smoothing Sigma ToolTip"),
-               "Transducer Margin" : (0, 1, 0, 100, 15, "Transducer Margin ToolTip"),
+               "Transducer Margin" : (0, 1, 0, 300, 15, "Transducer Margin ToolTip"),
                "Shadow Sigma" : (1, 1, 1, 10, 2, "Shadow Sigma ToolTip"),
                "Bone Threshold" : (1, 0.1, 0, 1, 0.3, "Bone Threshold ToolTip"),
                "Blurred vs. BLoG" : (0, 1, 1, 10, 1, "Blurred vs. BLoG ToolTip"),
