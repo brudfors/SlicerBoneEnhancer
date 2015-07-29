@@ -1,0 +1,14 @@
+ObjectType = Image
+NDims = 2
+BinaryData = True
+BinaryDataByteOrderMSB = False
+CompressedData = True
+CompressedDataSize = 72768
+TransformMatrix = 1 0 0 1
+Offset = 100 100
+CenterOfRotation = 0 0
+ElementSpacing = 1 1
+DimSize = 440 280
+AnatomicalOrientation = ??
+ElementType = MET_DOUBLE
+ElementDataFile = US_Lumbar_SingleSlice_Double.zraw
