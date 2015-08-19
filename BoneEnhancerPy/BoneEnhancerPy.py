@@ -33,6 +33,8 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
   """
  
   def setup(self):
+    self.logic = BoneEnhancerPyLogic()
+
     ScriptedLoadableModuleWidget.setup(self)
     
     ############################################################ Define algorithms    
@@ -46,8 +48,8 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
                "Transducer Margin" : (0, 1, 0, 300, 60, "Transducer Margin ToolTip"),
                "Shadow Sigma" : (1, 1, 1, 10, 6.0, "Shadow Sigma ToolTip"),
                "Bone Threshold" : (1, 0.1, 0, 1, 0.4, "Bone Threshold ToolTip"),
-               "Blurred vs. BLoG" : (0, 1, 1, 10, 3, "Blurred vs. BLoG ToolTip"),
-               "Shadow vs. Intensity" : (0, 1, 1, 10, 5, "Shadow vs. Intensity ToolTip")})
+               "Blurred vs. BLoG" : (1, 0.1, 0, 10, 3, "Blurred vs. BLoG ToolTip"),
+               "Shadow vs. Intensity" : (1, 0.1, 0, 10, 5, "Shadow vs. Intensity ToolTip")})
 
     self.algorithms = (self.example, self.foroughi2007)
     
@@ -91,6 +93,7 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
     
     for algorithm in self.algorithms:     
       self.parametersFormLayout.addWidget(algorithm.getSliderWidget())
+      algorithm.paramChangedCallback = self.onParameterChanged
                   
     # Runtime
     self.runtimeGroupBox = ctk.ctkCollapsibleGroupBox()
@@ -151,20 +154,34 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
     self.applyButton.enabled = self.ultrasoundImageSelector.currentNode() and (self.getCheckedAlgorithm().getName() != 'Example Algorithm')
     
   def onApplyButton(self):
-    logic = BoneEnhancerPyLogic()
     
     boneEnhancedImage = slicer.util.getNode('BoneEnhancedImage')    
     if not boneEnhancedImage:
-      boneEnhancedImage = logic.createVolumeNode(self.ultrasoundImageSelector.currentNode(), 'BoneEnhancedImage')  
+      boneEnhancedImage = self.logic.createVolumeNode(self.ultrasoundImageSelector.currentNode(), 'BoneEnhancedImage')  
       
     if self.ultrasoundImageSelector.currentNode().GetImageData().GetScalarType() is not vtk.VTK_DOUBLE:
       logging.info('Input image scalar type not double! Casting to double.')
-      logic.castVolumeNodeToDouble(self.ultrasoundImageSelector.currentNode())   
+      self.logic.castVolumeNodeToDouble(self.ultrasoundImageSelector.currentNode())   
       
-    logic.calculateBoneEnhancedImage(self.ultrasoundImageSelector.currentNode(), boneEnhancedImage, self.getCheckedAlgorithm().GetParamsVTK(), self.getCheckedAlgorithm().getName(), self.runtimeLabel, self.applyButton)
+    self.logic.calculateBoneEnhancedImage(self.ultrasoundImageSelector.currentNode(), boneEnhancedImage, self.getCheckedAlgorithm().GetParamsVTK(), self.getCheckedAlgorithm().getName(), self.runtimeLabel, self.applyButton)
 
     self.updateSliceViews(boneEnhancedImage, self.ultrasoundImageSelector.currentNode())
     
+  def onParameterChanged(self):
+    boneEnhancedImage = slicer.util.getNode('BoneEnhancedImage')
+    if not boneEnhancedImage:
+      boneEnhancedImage = self.logic.createVolumeNode(self.ultrasoundImageSelector.currentNode(), 'BoneEnhancedImage')
+
+    if self.ultrasoundImageSelector.currentNode().GetImageData().GetScalarType() is not vtk.VTK_DOUBLE:
+      logging.info('Input image scalar type not double! Casting to double.')
+      self.logic.castVolumeNodeToDouble(self.ultrasoundImageSelector.currentNode())
+
+    sliceWidget = slicer.app.layoutManager().sliceWidget('Red')
+    sliceLogic = sliceWidget.sliceLogic()
+    redSliceIndex = int(sliceWidget.sliceLogic().GetSliceOffset())
+
+    self.logic.calculateBoneEnhancedImage(self.ultrasoundImageSelector.currentNode(), boneEnhancedImage, self.getCheckedAlgorithm().GetParamsVTK(), self.getCheckedAlgorithm().getName(), None, None, redSliceIndex, redSliceIndex)
+
   def updateSliceViews(self, boneEnhancedImage, USVolumeNode):
     layoutManager = slicer.app.layoutManager()
     
@@ -246,9 +263,9 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
 class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
 
   # IMPORTANT: paramsVTK given to the ImageProcessingConnector are sorted alphabetically. 
-  def calculateBoneEnhancedImage(self, inputVolumeNode, boneEnhancedImage, paramsVTK, name, runtimeLabel=None, applyButton=None):     
+  def calculateBoneEnhancedImage(self, inputVolumeNode, boneEnhancedImage, paramsVTK, name, runtimeLabel=None, applyButton=None, firstSlice=-1, lastSlice=-1):
     logging.info('Extracting BSP started')
-    runtime = slicer.modules.boneenhancercpp.logic().ImageProcessingConnector(inputVolumeNode, boneEnhancedImage, paramsVTK, name)
+    runtime = slicer.modules.boneenhancercpp.logic().ImageProcessingConnector(inputVolumeNode, boneEnhancedImage, paramsVTK, name, firstSlice, lastSlice)
     runtime = str(round(runtime, 3)) 
     message = runtime + ' s.'
     if runtimeLabel:
@@ -305,12 +322,18 @@ class AlgorithmParams:
     self.CreateSliders()
     self.CreateLabels()
     self.createSlidersWidget()
-    
+    self.paramChangedCallback = None
+  
+  def __del__(self):
+    for paramKey in self.paramKeys:
+      self.GetSlider(paramKey).disconnect('valueChanged(double)', self.onParamChanged)
+  
   def createSlidersWidget(self):
     self.slidersWidget = qt.QWidget()
     self.slidersFormLayout = qt.QFormLayout(self.slidersWidget)
     for paramKey in self.paramKeys:
-      self.slidersFormLayout.addRow(self.GetLabel(paramKey), self.GetSlider(paramKey))        
+      self.slidersFormLayout.addRow(self.GetLabel(paramKey), self.GetSlider(paramKey))
+      self.GetSlider(paramKey).connect('valueChanged(double)', self.onParamChanged)
       
   def getSliderWidget(self):
     return self.slidersWidget
@@ -357,6 +380,10 @@ class AlgorithmParams:
       params.append(self.sliders[param].value)    
     paramsVtkDoubleArray = numpy_support.numpy_to_vtk(num_array=params, deep=True, array_type=vtk.VTK_DOUBLE)
     return paramsVtkDoubleArray
+    
+  def onParamChanged(self):
+    if self.paramChangedCallback:
+      self.paramChangedCallback()
 
 ############################################################ BoneEnhancerPyTest
 class BoneEnhancerPyTest(ScriptedLoadableModuleTest):
