@@ -5,18 +5,14 @@ from slicer.ScriptedLoadableModule import *
 import logging
 from vtk.util import numpy_support
 
-#
-# BoneEnhancerPy
-#
-
 class BoneEnhancerPy(ScriptedLoadableModule):
 
   def __init__(self, parent):
     ScriptedLoadableModule.__init__(self, parent)
-    self.parent.title = "BoneEnhancer" # TODO make this more human readable by adding spaces
+    self.parent.title = "BoneEnhancer"
     self.parent.categories = ["Filtering"]
     self.parent.dependencies = []
-    self.parent.contributors = ["Mikael Brudfors (UC3M)"] # replace with "Firstname Lastname (Organization)"
+    self.parent.contributors = ["Mikael Brudfors (brudfors@gmail.com), Andras Lasso"] 
     self.parent.helpText = """
     This is an example of scripted loadable module bundled in an extension.
     It performs a simple thresholding on the input volume and optionally captures a screenshot.
@@ -37,21 +33,33 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
 
     ScriptedLoadableModuleWidget.setup(self)
     
-    ############################################################ Define algorithms    
-    self.example = AlgorithmParams("Example Algorithm",
-              {"1st Parameter" : (1, 1, 1, 1, 0.5, "1st parameter toolTip"),
-               "2nd Parameter" : (0, 1, 0, 10, 5, "2nd parameter toolTip"),
-               "3rd Parameter" : (1, 1, 1, 100, 50, "3rd parameter toolTip")})
-               
+    # Add default algorithm parameters to Slicer.ini
+    self.settings = slicer.app.userSettings() 
+    self.settings.beginGroup(self.moduleName + '/Foroughi2007')
+    if not self.settings.allKeys(): # If no keys     
+      self.settings.setValue('SmoothingSigma', 5.0)
+      self.settings.setValue('TransducerMargin', 60)
+      self.settings.setValue('ShadowSigma', 6.0)
+      self.settings.setValue('BoneThreshold', 0.4)
+      self.settings.setValue('BlurredVsBLoG', 3)
+      self.settings.setValue('ShadowVsIntensity', 5)      
+    smoothingSigma = float(self.settings.value('SmoothingSigma'))
+    transducerMargin = float(self.settings.value('TransducerMargin'))
+    shadowSigma = float(self.settings.value('ShadowSigma'))
+    boneThreshold = float(self.settings.value('BoneThreshold'))
+    blurredVsBLoG = float(self.settings.value('BlurredVsBLoG'))
+    shadowVsIntensity = float(self.settings.value('ShadowVsIntensity'))
+    self.settings.endGroup()
+    
+    ############################################################# Define algorithms    
     self.foroughi2007 = AlgorithmParams("Foroughi2007 (with minor modifications)",
-              {"Smoothing Sigma" : (1, 1, 1, 10, 5.0, "Smoothing Sigma ToolTip"),
-               "Transducer Margin" : (0, 1, 0, 300, 60, "Transducer Margin ToolTip"),
-               "Shadow Sigma" : (1, 1, 1, 10, 6.0, "Shadow Sigma ToolTip"),
-               "Bone Threshold" : (1, 0.1, 0, 1, 0.4, "Bone Threshold ToolTip"),
-               "Blurred vs. BLoG" : (1, 0.1, 0, 10, 3, "Blurred vs. BLoG ToolTip"),
-               "Shadow vs. Intensity" : (1, 0.1, 0, 10, 5, "Shadow vs. Intensity ToolTip")})
-
-    self.algorithms = (self.example, self.foroughi2007)
+          {"Smoothing Sigma" : (1, 1, 1, 10, smoothingSigma, "Smoothing Sigma ToolTip"),
+           "Transducer Margin" : (0, 1, 0, 300, transducerMargin, "Transducer Margin ToolTip"),
+           "Shadow Sigma" : (1, 1, 1, 10, shadowSigma, "Shadow Sigma ToolTip"),
+           "Bone Threshold" : (1, 0.1, 0, 1, boneThreshold, "Bone Threshold ToolTip"),
+           "Blurred vs. BLoG" : (1, 0.1, 0, 10, blurredVsBLoG, "Blurred vs. BLoG ToolTip"),
+           "Shadow vs. Intensity" : (1, 0.1, 0, 10, shadowVsIntensity, "Shadow vs. Intensity ToolTip")})            
+    self.algorithms = [self.foroughi2007]
     
     # Set default algorithm
     self.defaultAlgorithm = self.foroughi2007
@@ -64,7 +72,6 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
 
     self.ultrasoundImageSelector = slicer.qMRMLNodeComboBox()
     self.ultrasoundImageSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
-    self.ultrasoundImageSelector.addAttribute( "vtkMRMLScalarVolumeNode", "LabelMap", 0 )
     self.ultrasoundImageSelector.selectNodeUponCreation = True
     self.ultrasoundImageSelector.addEnabled = False
     self.ultrasoundImageSelector.removeEnabled = False
@@ -129,10 +136,10 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
     self.layout.addStretch(1)    
     self.defaultAlgorithm.GetRadioButton().checked = True
     self.onSelect()
-    
-    self.ModuleLayoutID = -1    
-    self.setModuleLayout()
   
+  def cleanup(self):
+    pass
+    
   def getCheckedAlgorithm(self):
     for algorithm in self.algorithms:     
       if algorithm.GetRadioButton().checked:
@@ -142,11 +149,6 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
     for algorithm in self.algorithms:     
       if algorithm.GetRadioButton().checked:
         algorithm.getSliderWidget().show()               
-        if algorithm.getName() == 'Example Algorithm':
-          print algorithm.getName()
-          self.applyButton.enabled = False
-        elif self.ultrasoundImageSelector.currentNode():
-          self.applyButton.enabled = True
       else:      
         algorithm.getSliderWidget().hide()
         
@@ -154,7 +156,6 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
     self.applyButton.enabled = self.ultrasoundImageSelector.currentNode() and (self.getCheckedAlgorithm().getName() != 'Example Algorithm')
     
   def onApplyButton(self):
-    
     boneEnhancedImage = slicer.util.getNode('BoneEnhancedImage')    
     if not boneEnhancedImage:
       boneEnhancedImage = self.logic.createVolumeNode(self.ultrasoundImageSelector.currentNode(), 'BoneEnhancedImage')  
@@ -165,41 +166,85 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
       
     self.logic.calculateBoneEnhancedImage(self.ultrasoundImageSelector.currentNode(), boneEnhancedImage, self.getCheckedAlgorithm().GetParamsVTK(), self.getCheckedAlgorithm().getName(), self.runtimeLabel, self.applyButton)
 
-    self.updateSliceViews(boneEnhancedImage, self.ultrasoundImageSelector.currentNode())
+    self.logic.updateSliceViews(boneEnhancedImage, self.ultrasoundImageSelector.currentNode())
     
-  def onParameterChanged(self):
-    boneEnhancedImage = slicer.util.getNode('BoneEnhancedImage')
-    if not boneEnhancedImage:
-      boneEnhancedImage = self.logic.createVolumeNode(self.ultrasoundImageSelector.currentNode(), 'BoneEnhancedImage')
+  def onParameterChanged(self):    
+    self.writeParamsToSettings()
+    
+    if self.ultrasoundImageSelector.currentNode():
+      boneEnhancedImage = slicer.util.getNode('BoneEnhancedImage')
+      if not boneEnhancedImage:
+        boneEnhancedImage = self.logic.createVolumeNode(self.ultrasoundImageSelector.currentNode(), 'BoneEnhancedImage')
 
-    if self.ultrasoundImageSelector.currentNode().GetImageData().GetScalarType() is not vtk.VTK_DOUBLE:
-      logging.info('Input image scalar type not double! Casting to double.')
-      self.logic.castVolumeNodeToDouble(self.ultrasoundImageSelector.currentNode())
+      if self.ultrasoundImageSelector.currentNode().GetImageData().GetScalarType() is not vtk.VTK_DOUBLE:
+        logging.info('Input image scalar type not double! Casting to double.')
+        self.logic.castVolumeNodeToDouble(self.ultrasoundImageSelector.currentNode())
 
-    sliceWidget = slicer.app.layoutManager().sliceWidget('Red')
-    sliceLogic = sliceWidget.sliceLogic()
-    redSliceIndex = int(sliceWidget.sliceLogic().GetSliceOffset())
+      sliceWidget = slicer.app.layoutManager().sliceWidget('Red')
+      sliceLogic = sliceWidget.sliceLogic()
+      redSliceIndex = int(sliceWidget.sliceLogic().GetSliceOffset())
 
-    self.logic.calculateBoneEnhancedImage(self.ultrasoundImageSelector.currentNode(), boneEnhancedImage, self.getCheckedAlgorithm().GetParamsVTK(), self.getCheckedAlgorithm().getName(), None, None, redSliceIndex, redSliceIndex)
+      self.logic.calculateBoneEnhancedImage(self.ultrasoundImageSelector.currentNode(), boneEnhancedImage, self.getCheckedAlgorithm().GetParamsVTK(), self.getCheckedAlgorithm().getName(), None, None, redSliceIndex, redSliceIndex)
+  
+  def writeParamsToSettings(self):
+    algorithmName = self.getCheckedAlgorithm().getName().split(' ', 1)[0]
+    if algorithmName == 'Foroughi2007':
+      params = self.getCheckedAlgorithm().GetParamsVTK()
+      blurredVSBLoG = params.GetValue(0);
+      boneThreshold = params.GetValue(1);
+      shadowSigma = params.GetValue(2);
+      shadowVSIntensity = params.GetValue(3);
+      smoothingSigma = params.GetValue(4);
+      transducerMargin = params.GetValue(5);	    
+      self.settings.beginGroup(self.moduleName + '/' + algorithmName) 
+      self.settings.setValue('BlurredVsBLoG', blurredVSBLoG)
+      self.settings.setValue('BoneThreshold', boneThreshold)
+      self.settings.setValue('ShadowSigma', shadowSigma)
+      self.settings.setValue('ShadowVsIntensity', shadowVSIntensity)             
+      self.settings.setValue('SmoothingSigma', smoothingSigma)
+      self.settings.setValue('TransducerMargin', transducerMargin)   
+      self.settings.endGroup()
+      
+############################################################ BoneEnhancerPyLogic
+class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
+
+  def __init__(self):        
+    self.ModuleLayoutID = -1    
+    self.setLayout()
+  
+  # IMPORTANT: paramsVTK given to the ImageProcessingConnector are sorted alphabetically. 
+  def calculateBoneEnhancedImage(self, inputVolumeNode, boneEnhancedImage, paramsVTK, name, runtimeLabel=None, applyButton=None, firstSlice=-1, lastSlice=-1):
+    logging.info('Extracting BSP started')
+    runtime = slicer.modules.boneenhancercpp.logic().ImageProcessingConnector(inputVolumeNode, boneEnhancedImage, paramsVTK, name, firstSlice, lastSlice)
+    runtime = str(round(runtime, 3)) 
+    message = runtime + ' s.'
+    if runtimeLabel:
+      runtimeLabel.setText(message)
+    logging.info('Extracting BSP completed (' + message + ')')
+    
+    boneEnhancedImage.Modified()
+    if applyButton:
+      applyButton.checked = False
+    
+    return True
 
   def updateSliceViews(self, boneEnhancedImage, USVolumeNode):
-    layoutManager = slicer.app.layoutManager()
-    
+    layoutManager = slicer.app.layoutManager()   
     # Update bone enhanced image
     for name in ['RedBone', 'YellowBone', 'GreenBone']:      
       sliceWidget = layoutManager.sliceWidget(name)    
       sliceLogic = sliceWidget.sliceLogic()
       sliceLogic.GetSliceCompositeNode().SetBackgroundVolumeID(boneEnhancedImage.GetID()) 
-      sliceLogic.FitSliceToAll() 
-    
+      sliceLogic.FitSliceToAll()    
     # Update ultrasound image
     for name in ['Red', 'Yellow', 'Green']:      
       sliceWidget = layoutManager.sliceWidget(name)    
       sliceLogic = sliceWidget.sliceLogic()
       sliceLogic.GetSliceCompositeNode().SetBackgroundVolumeID(USVolumeNode.GetID()) 
-      sliceLogic.FitSliceToAll() 
-      
-  def setModuleLayout(self):
+      sliceLogic.FitSliceToAll()       
+    return True
+    
+  def setLayout(self):
     layoutManager = slicer.app.layoutManager()
     if self.ModuleLayoutID == -1:
       ModuleLayout = ("<layout type=\"vertical\">"
@@ -258,25 +303,6 @@ class BoneEnhancerPyWidget(ScriptedLoadableModuleWidget):
       layoutManager.layoutLogic().GetLayoutNode().AddLayoutDescription(self.ModuleLayoutID, ModuleLayout)
       
     layoutManager.setLayout(self.ModuleLayoutID)
-
-############################################################ BoneEnhancerPyLogic
-class BoneEnhancerPyLogic(ScriptedLoadableModuleLogic):
-
-  # IMPORTANT: paramsVTK given to the ImageProcessingConnector are sorted alphabetically. 
-  def calculateBoneEnhancedImage(self, inputVolumeNode, boneEnhancedImage, paramsVTK, name, runtimeLabel=None, applyButton=None, firstSlice=-1, lastSlice=-1):
-    logging.info('Extracting BSP started')
-    runtime = slicer.modules.boneenhancercpp.logic().ImageProcessingConnector(inputVolumeNode, boneEnhancedImage, paramsVTK, name, firstSlice, lastSlice)
-    runtime = str(round(runtime, 3)) 
-    message = runtime + ' s.'
-    if runtimeLabel:
-      runtimeLabel.setText(message)
-    logging.info('Extracting BSP completed (' + message + ')')
-    
-    boneEnhancedImage.Modified()
-    if applyButton:
-      applyButton.checked = False
-    
-    return True
     
   def createVolumeNode(self, inputVolumeNode, name):
     inputImageData = inputVolumeNode.GetImageData()
@@ -401,8 +427,8 @@ class BoneEnhancerPyTest(ScriptedLoadableModuleTest):
     self.delayDisplay("Testing BSP")
     
     import urllib
-    downloads = (('http://slicer.kitware.com/midas3/download/item/205865/3DUS_Lumbar.nrrd', 
-                 '3DUS_Lumbar.nrrd', slicer.util.loadVolume),)        
+    downloads = (('http://slicer.kitware.com/midas3/download/item/210901/US_Lumbar_SingleSlice_Double.mha', 
+                 'US_Lumbar_SingleSlice_Double.mha', slicer.util.loadVolume),)        
 
     for url,name,loader in downloads:
       filePath = slicer.app.temporaryPath + '/' + name
@@ -416,7 +442,7 @@ class BoneEnhancerPyTest(ScriptedLoadableModuleTest):
         self.delayDisplay('Test failed, no volume loader')
         return
     self.delayDisplay('Finished with download and loading')
-    volumeNode = slicer.util.getNode(pattern="3DUS_Lumbar")
+    volumeNode = slicer.util.getNode(pattern="US_Lumbar_SingleSlice_Double")
  
     params = AlgorithmParams("Foroughi2007 (with minor modifications)",
               {"Smoothing Sigma" : (1, 1, 1, 10, 3, "Smoothing Sigma ToolTip"),
@@ -429,4 +455,5 @@ class BoneEnhancerPyTest(ScriptedLoadableModuleTest):
     logic = BoneEnhancerPyLogic()
     self.assertTrue(logic.createVolumeNode(volumeNode, 'BoneEnhancedImage'))    
     self.assertTrue(logic.calculateBoneEnhancedImage(volumeNode, slicer.util.getNode('BoneEnhancedImage'), params.GetParamsVTK(), 'Foroughi2007 (with minor modifications)'))
+    self.assertTrue(logic.updateSliceViews(slicer.util.getNode('BoneEnhancedImage'), volumeNode))        
     self.delayDisplay('Testing BSP passed!')

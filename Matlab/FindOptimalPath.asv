@@ -1,5 +1,0 @@
-filename = 'H:/src/S4Mods/BoneEnhancer/Data/BP_Lumbar_SingleSlice_Double.mha';
-[V,info]=ReadData3D(filename);
-imshow(imrotate(V,-90))
-
-E_int = 1 - V;
