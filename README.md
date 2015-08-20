@@ -1,5 +1,3 @@
-![Capture.PNG](https://bitbucket.org/repo/LK76Gq/images/1778480745-Capture.PNG)
-
 # BoneEnhancer #
 A 3D Slicer module which enhances bone in US images. It is possible to test the module from 3D Slicer pressing *Reload and Test*, which loads a lumbar spine US image (available in MIDAS).
 
