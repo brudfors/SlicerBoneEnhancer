@@ -4,6 +4,14 @@ set(KIT ${PROJECT_NAME})
 
 set(${KIT}_EXPORT_DIRECTIVE "VTK_SLICER_${MODULE_NAME_UPPER}_MODULE_LOGIC_EXPORT")
 
+FIND_PACKAGE( OpenMP REQUIRED)
+if(OPENMP_FOUND)
+  message("OPENMP FOUND")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+endif()
+
 find_path(IntelComposerXEdir IntelComposerXE
   PATHS "C:/Program Files (x86)/Intel/Composer XE 2015/"
   DOC "A path to Intel Composer XE" )

@@ -47,7 +47,7 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent);
 
   /*! Image processing connector method. */
-  float ImageProcessingConnector(vtkMRMLScalarVolumeNode* inputVolumeNode, vtkMRMLScalarVolumeNode* outputVolumeNode, vtkDoubleArray* params, std::string algorithmName);
+  float ImageProcessingConnector(vtkMRMLScalarVolumeNode* inputVolumeNode, vtkMRMLScalarVolumeNode* outputVolumeNode, vtkDoubleArray* params, std::string algorithmName, int firstSliceIndex, int lastSliceIndex);
 
 protected:
   vtkSlicerBoneEnhancerCppLogic();
@@ -74,10 +74,10 @@ private:
   double GetMaxPixelValue(const double* buffer, int size);
 
   /*! Normalizes an image stored in a buffer. */
-  void Normalize(double* buffer, int size, bool doInverse);
+  void Normalize(double* buffer, int size, bool doInverse, double maxValue=1.0);
 
   /*! Extracts the bone surface probability from an US volume. */
-  void Foroughi2007(double* inputBuffer, double* outputBuffer, double smoothingSigma, int transducerMargin, double shadowSigma, double boneThreshold, int blurredVSBLoG, int shadowVSIntensity, int nx, int ny, int nz);
+  void Foroughi2007(double* inputBuffer, double* outputBuffer, double smoothingSigma, int transducerMargin, double shadowSigma, double boneThreshold, double blurredVSBLoG, double shadowVSIntensity, int nx, int ny, int nz, int firstSliceIndex, int lastSliceIndex);
 };
 
 #endif

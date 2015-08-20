@@ -24,11 +24,12 @@ limitations under the License.
 #include <vtkMRMLSelectionNode.h>
 
 // VTK includes
+#include <vtkDoubleArray.h>
+#include <vtkImageData.h>
 #include <vtkIntArray.h>
+#include <vtkMatrix4x4.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
-#include <vtkImageData.h>
-#include <vtkDoubleArray.h>
 #include <vtkTimerLog.h>
 
 // STD includes
@@ -100,38 +101,45 @@ void vtkSlicerBoneEnhancerCppLogic
 // An image processing connector method, which takes both an input, and a output volume node from 3D Slicer,
 // an array of parameters, and the name of the algorithm to execute.
 float vtkSlicerBoneEnhancerCppLogic
-::ImageProcessingConnector(vtkMRMLScalarVolumeNode* inputVolumeNode, vtkMRMLScalarVolumeNode* outputVolumeNode, vtkDoubleArray* params, std::string algorithmName)
+::ImageProcessingConnector(vtkMRMLScalarVolumeNode* inputVolumeNode, vtkMRMLScalarVolumeNode* outputVolumeNode, vtkDoubleArray* params, std::string algorithmName, int firstSliceIndex, int lastSliceIndex)
 {
   int* dims = inputVolumeNode->GetImageData()->GetDimensions();
   int nx = dims[0];
   int ny = dims[1];
   int nz = dims[2];
 
-  float runtime = 0.0;
+  vtkSmartPointer<vtkTimerLog> timer = vtkSmartPointer<vtkTimerLog>::New();
+  timer->StartTimer();
   if (algorithmName == "Foroughi2007 (with minor modifications)")
   {
     // Define necessary parameters
-    int blurredVSBLoG = params->GetValue(0);
+    double blurredVSBLoG = params->GetValue(0);
     double boneThreshold = params->GetValue(1);
     double shadowSigma = params->GetValue(2);
-    int shadowVSIntensity = params->GetValue(3);
+    double shadowVSIntensity = params->GetValue(3);
     double smoothingSigma = params->GetValue(4);
     int transducerMargin = params->GetValue(5);		
 
-    vtkSmartPointer<vtkTimerLog> timer = vtkSmartPointer<vtkTimerLog>::New();
-    timer->StartTimer();
 
     // Extract BSP from input volume (through pointer) and put result into the output volume's buffer
-    this->Foroughi2007(static_cast<double*>(inputVolumeNode->GetImageData()->GetScalarPointer(0,0,0)), static_cast<double*>(outputVolumeNode->GetImageData()->GetScalarPointer(0,0,0)), smoothingSigma, transducerMargin, shadowSigma, boneThreshold, blurredVSBLoG, shadowVSIntensity, nx, ny, nz);
+    this->Foroughi2007(static_cast<double*>(inputVolumeNode->GetImageData()->GetScalarPointer(0,0,0)), static_cast<double*>(outputVolumeNode->GetImageData()->GetScalarPointer(0,0,0)), smoothingSigma, transducerMargin, shadowSigma, boneThreshold, blurredVSBLoG, shadowVSIntensity, nx, ny, nz, firstSliceIndex, lastSliceIndex);
 
-    timer->StopTimer();
-    runtime = timer->GetElapsedTime();
+    // Set the output volume's geometry to be the same as the input volume
+    vtkSmartPointer<vtkMatrix4x4> ijkToRasMatrix = vtkSmartPointer<vtkMatrix4x4>::New();
+    inputVolumeNode->GetIJKToRASMatrix(ijkToRasMatrix);
+    outputVolumeNode->SetIJKToRASMatrix(ijkToRasMatrix);
+
+    outputVolumeNode->GetImageData()->Modified();
+    outputVolumeNode->Modified();
   }
   else
   {
     std::cout << "No algorithm defined!" << std::endl;
+    return 0;
   }
 
+  timer->StopTimer();
+  float runtime = timer->GetElapsedTime();
   return runtime;
 }
 
@@ -140,7 +148,7 @@ float vtkSlicerBoneEnhancerCppLogic
 // (with some modifications), which extracts the bone surface probability (BSP) from an US volume.
 // By: Mikael Brudfors, March 2014
 void vtkSlicerBoneEnhancerCppLogic
-::Foroughi2007(double* inputBuffer, double* outputBuffer, double smoothingSigma, int transducerMargin, double shadowSigma, double boneThreshold, int blurredVSBLoG, int shadowVSIntensity, int nx, int ny, int nz)
+::Foroughi2007(double* inputBuffer, double* outputBuffer, double smoothingSigma, int transducerMargin, double shadowSigma, double boneThreshold, double blurredVSBLoG, double shadowVSIntensity, int nx, int ny, int nz, int firstSliceIndex, int lastSliceIndex)
 {
   int sliceSize = nx * ny;
   int volumeSize = nx * ny * nz;
@@ -193,8 +201,14 @@ void vtkSlicerBoneEnhancerCppLogic
   laplacianKernel[7] = -1;
   laplacianKernel[8] = 0;
 
+  if (firstSliceIndex<0 || lastSliceIndex<0 || firstSliceIndex>lastSliceIndex)
+  {
+    firstSliceIndex = 0;
+    lastSliceIndex = nz-1;
+  }
+
   // Loop through each slice
-  for(idx = 0; idx < nz; ++idx)
+  for(idx = firstSliceIndex; idx <= lastSliceIndex; ++idx)
   {
     // Index of slice in buffer
     int slice = sliceSize * idx;
@@ -210,10 +224,11 @@ void vtkSlicerBoneEnhancerCppLogic
       this->Conv2(gaussianBuffer, laplacianKernel, laplacianOfGaussianBufferTemp, laplacianOfGaussianBuffer, nx, ny, 3, 3);
 
       // Main loop calculating reflection number and shadow value
-      double sumG, sumGI, sumHist;
+      double sumG=0;
+      double sumGI=0;
       int i, pixelIdx, x, y;
       #ifdef NDEBUG
-			#pragma omp parallel for reduction(+:sumG,sumGI, sumHist), private(i, x, pixelIdx)
+			#pragma omp parallel for reduction(+:sumG,sumGI), private(i, x, pixelIdx)
       #endif		
       for (y = 0; y < ny; ++y)
       {
@@ -265,7 +280,7 @@ void vtkSlicerBoneEnhancerCppLogic
       vdMul(sliceSize, shadowValueBuffer, reflectionNumberBuffer, &outputBuffer[slice]);
 
       // Normalize BSP
-      this->Normalize(&outputBuffer[slice], sliceSize, false);
+      this->Normalize(&outputBuffer[slice], sliceSize, false, 255);
     }
   }
 
@@ -341,21 +356,42 @@ double vtkSlicerBoneEnhancerCppLogic
 
 //-----------------------------------------------------------------------------
 void vtkSlicerBoneEnhancerCppLogic
-::Normalize(double* buffer, int size, bool doInverse)
+::Normalize(double* buffer, int size, bool doInverse, double maxValue /*=1.0*/)
 {
   double maxPixelValue = GetMaxPixelValue(buffer, size);
 
-  if (!doInverse)
+  if (maxPixelValue == 0)
   {
-    for (int i = 0; i < size; ++i)
+    if (!doInverse)
     {
-      buffer[i] =  buffer[i] / maxPixelValue;
+      for (int i = 0; i < size; ++i)
+      {
+        buffer[i] = maxValue;
+      }
+    }
+    else
+    {
+      for (int i = 0; i < size; ++i)
+      {
+        buffer[i] = 0;
+      }
     }
     return;
   }
 
-  for (int i = 0; i < size; ++i)
+  double scaleFactor = maxValue / GetMaxPixelValue(buffer, size);
+  if (!doInverse)
   {
-    buffer[i] = 1 - buffer[i] / maxPixelValue;
+    for (int i = 0; i < size; ++i)
+    {
+      buffer[i] *=  scaleFactor;
+    }
+  }
+  else
+  {
+    for (int i = 0; i < size; ++i)
+    {
+      buffer[i] = 1 - buffer[i]*scaleFactor;
+    }
   }
 }
